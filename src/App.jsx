@@ -4,6 +4,7 @@ import { Arrow, Circle, Layer, Line, Rect, Stage, Transformer } from "react-konv
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
 import { drawRectangle } from './scripts';
+import LineShape from './components/Line'
 
 const App = () => {
   const stageRef = useRef();
@@ -16,6 +17,11 @@ const App = () => {
   const [stageSize, setStageSize] = useState({ width: window.innerWidth - 600, height: window.innerHeight });
   const [attrs, setAttrs] = React.useState({ width: 0, height: 0 })
   const [lines, setLines] = useState([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [curve, setCurve] = useState({
+    points: [],
+    controlPoints: []
+  });
 
   const strokeColor = "#000";
   const isPaining = useRef();
@@ -88,6 +94,7 @@ const App = () => {
 
     switch (action) {
       case ACTIONS.RECTANGLE:
+        setIsDrawing(false)
         setRectangles((rectangles) => [
           ...rectangles,
           {
@@ -118,17 +125,19 @@ const App = () => {
         ]);
         break;
       case ACTIONS.CIRCLE:
+        setIsDrawing(false)
         setCircles((circles) => [
           ...circles,
           {
             id,
             x,
             y,
-            radius: 90,
+            radius: 20,
           },
         ]);
         break;
       case ACTIONS.SCRIBBLE:
+        setIsDrawing(false)
         setScribbles((scribbles) => [
           ...scribbles,
           {
@@ -138,21 +147,14 @@ const App = () => {
         ]);
         break;
       case ACTIONS.LINE:
-        setLines((lines) => [
-          ...lines,
-          {
-            id,
-            points: [x, y, x, y], // Initialize with starting point
-          },
-        ]);
+        setIsDrawing(true)
         break;
     }
-
     saveState();
   };
 
   const onPointerMove = () => {
-    if (action === ACTIONS.SELECT || !isPaining.current) return;
+    if (action === ACTIONS.SELECT || !isPaining.current) return
 
     const stage = stageRef.current;
     const { x, y } = stage.getPointerPosition();
@@ -217,6 +219,84 @@ const App = () => {
     document.body.removeChild(link);
   };
 
+  const addControlPoint = (x, y) => {
+    setCurve(prev => {
+      const newPoints = [...prev.controlPoints, { x, y }];
+      const updatedPoints = newPoints.flatMap(p => [p.x, p.y]);
+      return { ...prev, points: updatedPoints, controlPoints: newPoints };
+    });
+  };
+
+  const handleDragMove = (index) => (e) => {
+    const newPoints = [...curve.controlPoints];
+    newPoints[index] = { x: e.target.x(), y: e.target.y() };
+
+    const updatedPoints = newPoints.flatMap(p => [p.x, p.y]);
+
+    setCurve({
+      ...curve,
+      points: updatedPoints,
+      controlPoints: newPoints
+    });
+  };
+
+  const handleStageClick = (e) => {
+    if (!isDrawing) return;
+    const { x, y } = e.target.getStage().getPointerPosition();
+
+    if (curve.points.length > 0) {
+      const tolerance = 10;
+      let minDist = Infinity;
+      let segmentIndex = -1;
+      let newPoint = null;
+
+      for (let i = 0; i < curve.points.length - 2; i += 2) {
+        const x1 = curve.points[i];
+        const y1 = curve.points[i + 1];
+        const x2 = curve.points[i + 2];
+        const y2 = curve.points[i + 3];
+
+        const dist = distanceToSegment(x1, y1, x2, y2, x, y);
+        if (dist < tolerance && dist < minDist) {
+          minDist = dist;
+          segmentIndex = i;
+          newPoint = { x, y };
+        }
+      }
+
+      if (segmentIndex >= 0 && newPoint) {
+        const newPoints = [
+          ...curve.points.slice(0, segmentIndex + 2),
+          newPoint.x, newPoint.y,
+          ...curve.points.slice(segmentIndex + 2)
+        ];
+        const newControlPoints = [
+          ...curve.controlPoints.slice(0, segmentIndex / 2 + 1),
+          newPoint,
+          ...curve.controlPoints.slice(segmentIndex / 2 + 1)
+        ];
+
+        setCurve({
+          points: newPoints,
+          controlPoints: newControlPoints
+        });
+      } else {
+        addControlPoint(x, y);
+      }
+    } else {
+      addControlPoint(x, y);
+    }
+  };
+
+  const distanceToSegment = (x1, y1, x2, y2, x, y) => {
+    const length2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+    if (length2 === 0) return Math.hypot(x - x1, y - y1);
+    const t = Math.max(0, Math.min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / length2));
+    const projX = x1 + t * (x2 - x1);
+    const projY = y1 + t * (y2 - y1);
+    return Math.hypot(x - projX, y - projY);
+  };
+
   const handleInputChange = (e, attr) => {
     const value = Number(e.target.value);
     setAttrs({ ...attrs, [attr]: value });
@@ -231,7 +311,6 @@ const App = () => {
   };
 
   const onClick = (e) => {
-    console.log(e);
     setAttrs({ width: e.currentTarget.attrs.width, height: e.currentTarget.attrs.height })
     if (action !== ACTIONS.SELECT) return;
     const target = e.currentTarget;
@@ -279,7 +358,7 @@ const App = () => {
             <button onClick={handleExport}>
               <IoMdDownload size={"1.5rem"} />
             </button>
-            {JSON.stringify(rectangles)}
+            {/* {JSON.stringify(rectangles)} */}
           </div>
         </div>
         {/* Canvas */}
@@ -291,6 +370,7 @@ const App = () => {
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
+            onClick={handleStageClick}
           >
             <Layer>
               <Rect
@@ -344,21 +424,27 @@ const App = () => {
                 />
               ))}
 
-              {lines.map((line) => (
-                <Line
-                  key={line.id}
-                  lineCap="butt"
-                  lineJoin="bevel"
-                  points={line.points}
-                  stroke={strokeColor}
-                  strokeWidth={4}
-                  draggable={action === ACTIONS.SELECT}
-                  onClick={onClick}
-                  onDragMove={onClick}
+              <Line
+                points={curve.points}
+                stroke="black"
+                strokeWidth={4}
+                lineCap="round"
+                lineJoin="round"
+                tension={0} // Adjust tension for the desired curve shape
+                closed={false} // Set to true if you want to close the curve
+              />
+              {/* Draw control points */}
+              {curve.controlPoints.map((point, i) => (
+                <Circle
+                  key={i}
+                  x={point.x}
+                  y={point.y}
+                  radius={6}
+                  fill="red"
+                  draggable
+                  onDragMove={handleDragMove(i)}
                 />
               ))}
-
-
               <Transformer ref={transformerRef} />
             </Layer>
           </Stage>
