@@ -3,6 +3,7 @@ import { IoMdDownload } from "react-icons/io";
 import { Arrow, Circle, Layer, Line, Rect, Stage, Transformer } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
+import { drawRectangle } from './scripts';
 
 const App = () => {
   const stageRef = useRef();
@@ -13,7 +14,8 @@ const App = () => {
   const [arrows, setArrows] = useState([]);
   const [scribbles, setScribbles] = useState([]);
   const [stageSize, setStageSize] = useState({ width: window.innerWidth - 600, height: window.innerHeight });
-  const [attrs, setAttrs] = React.useState({width: 0, height: 0})
+  const [attrs, setAttrs] = React.useState({ width: 0, height: 0 })
+  const [lines, setLines] = useState([]);
 
   const strokeColor = "#000";
   const isPaining = useRef();
@@ -89,9 +91,27 @@ const App = () => {
         setRectangles((rectangles) => [
           ...rectangles,
           {
+            name: `polygon-${currentShapeId.current}`,
+            closed: false,
+            points: [
+              {
+                x,
+                y,
+                formulas: {
+                  y: {
+                    datatype: "IamFormula",
+                    place: y,
+                    KEYID: id
+                  },
+                  x: {
+                    datatype: "IamFormula",
+                    place: y,
+                    KEYID: id
+                  }
+                }
+              },
+            ],
             id,
-            x,
-            y,
             height: 20,
             width: 20,
           },
@@ -104,7 +124,7 @@ const App = () => {
             id,
             x,
             y,
-            radius: 20,
+            radius: 90,
           },
         ]);
         break;
@@ -114,6 +134,15 @@ const App = () => {
           {
             id,
             points: [x, y],
+          },
+        ]);
+        break;
+      case ACTIONS.LINE:
+        setLines((lines) => [
+          ...lines,
+          {
+            id,
+            points: [x, y, x, y], // Initialize with starting point
           },
         ]);
         break;
@@ -130,18 +159,7 @@ const App = () => {
 
     switch (action) {
       case ACTIONS.RECTANGLE:
-        setRectangles((rectangles) =>
-          rectangles.map((rectangle) => {
-            if (rectangle.id === currentShapeId.current) {
-              return {
-                ...rectangle,
-                width: x - rectangle.x,
-                height: y - rectangle.y,
-              };
-            }
-            return rectangle;
-          })
-        );
+        drawRectangle(rectangles, currentShapeId.current, x, y, setRectangles);
         break;
       case ACTIONS.CIRCLE:
         setCircles((circles) =>
@@ -169,6 +187,19 @@ const App = () => {
           })
         );
         break;
+      case ACTIONS.LINE:
+        setLines((lines) =>
+          lines.map((line) => {
+            if (line.id === currentShapeId.current) {
+              return {
+                ...line,
+                points: [line.points[0], line.points[1], x, y],
+              };
+            }
+            return line;
+          })
+        );
+        break;
     }
   };
 
@@ -187,21 +218,21 @@ const App = () => {
   };
 
   const handleInputChange = (e, attr) => {
-  const value = Number(e.target.value);
-  setAttrs({ ...attrs, [attr]: value });
+    const value = Number(e.target.value);
+    setAttrs({ ...attrs, [attr]: value });
 
-  setRectangles((rectangles) =>
-    rectangles.map((rectangle) =>
-      rectangle.id === selectedShapeId
-        ? { ...rectangle, [attr]: value }
-        : rectangle
-    )
-  );
-};
+    setRectangles((rectangles) =>
+      rectangles.map((rectangle) =>
+        rectangle.id === selectedShapeId
+          ? { ...rectangle, [attr]: value }
+          : rectangle
+      )
+    );
+  };
 
   const onClick = (e) => {
     console.log(e);
-    setAttrs({width: e.currentTarget.attrs.width, height: e.currentTarget.attrs.height})
+    setAttrs({ width: e.currentTarget.attrs.width, height: e.currentTarget.attrs.height })
     if (action !== ACTIONS.SELECT) return;
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
@@ -226,6 +257,12 @@ const App = () => {
               Rectangle
             </button>
             <button
+              className={action === ACTIONS.LINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
+              onClick={() => setAction(ACTIONS.LINE)}
+            >
+              Line
+            </button>
+            <button
               className={action === ACTIONS.CIRCLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
               onClick={() => setAction(ACTIONS.CIRCLE)}
             >
@@ -242,6 +279,7 @@ const App = () => {
             <button onClick={handleExport}>
               <IoMdDownload size={"1.5rem"} />
             </button>
+            {JSON.stringify(rectangles)}
           </div>
         </div>
         {/* Canvas */}
@@ -267,8 +305,8 @@ const App = () => {
               {rectangles.map((rectangle) => (
                 <Rect
                   key={rectangle.id}
-                  x={rectangle.x}
-                  y={rectangle.y}
+                  x={rectangle.points[0].x}
+                  y={rectangle.points[0].y}
                   stroke={strokeColor}
                   strokeWidth={2}
                   height={rectangle.height}
@@ -288,7 +326,7 @@ const App = () => {
                   stroke={strokeColor}
                   strokeWidth={2}
                   draggable={action === ACTIONS.SELECT}
-                  onDragStart={onclick}
+                  onDragMove={onClick}
                 />
               ))}
               {scribbles.map((scribble) => (
@@ -302,15 +340,31 @@ const App = () => {
                   fill={scribble.fillColor}
                   draggable={action === ACTIONS.SELECT}
                   onClick={onClick}
+                  onDragMove={onClick}
                 />
               ))}
+
+              {lines.map((line) => (
+                <Line
+                  key={line.id}
+                  lineCap="butt"
+                  lineJoin="bevel"
+                  points={line.points}
+                  stroke={strokeColor}
+                  strokeWidth={4}
+                  draggable={action === ACTIONS.SELECT}
+                  onClick={onClick}
+                  onDragMove={onClick}
+                />
+              ))}
+
 
               <Transformer ref={transformerRef} />
             </Layer>
           </Stage>
         </div>
         <div className='flex flex-col px-1 gap-2 py-4 col-span-2'>
-        <label htmlFor="width">Width</label>
+          <label htmlFor="width">Width</label>
           <input
             onChange={(e) => handleInputChange(e, 'width')}
             value={attrs.width}
