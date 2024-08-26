@@ -459,6 +459,8 @@ const App = () => {
   };
   return (
     <>
+      <marquee className="text-red-500" behavior="" direction="left">Website coming soon. Stay tuned</marquee>
+
       <div className="grid grid-cols-10 w-full h-screen overflow-hidden">
         {/* Controls */}
         <div className="col-span-2 border z-10 w-full py-2">
