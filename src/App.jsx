@@ -6,8 +6,11 @@ import { ACTIONS } from "./constants";
 import { drawRectangle } from './scripts';
 import LineShape from './components/Line'
 
+const GUIDELINE_OFFSET = 5;
+
 const App = () => {
   const stageRef = useRef();
+  const layerRef = useRef(null);
   const transformerRef = useRef();
   const [action, setAction] = useState(ACTIONS.SELECT);
   const [rectangles, setRectangles] = useState([]);
@@ -22,6 +25,7 @@ const App = () => {
     points: [],
     controlPoints: []
   });
+  const [close, setClose] = useState(false)
 
   const strokeColor = "#000";
   const isPaining = useRef();
@@ -46,6 +50,139 @@ const App = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // snap 
+  const getLineGuideStops = (skipShape) => {
+    const stage = stageRef.current;
+    const vertical = [0, stage.width() / 2, stage.width()];
+    const horizontal = [0, stage.height() / 2, stage.height()];
+
+    stage.find('.object').forEach((guideItem) => {
+      if (guideItem === skipShape) return;
+      const box = guideItem.getClientRect();
+      vertical.push(box.x, box.x + box.width, box.x + box.width / 2);
+      horizontal.push(box.y, box.y + box.height, box.y + box.height / 2);
+    });
+
+    return {
+      vertical: vertical.flat(),
+      horizontal: horizontal.flat(),
+    };
+  }
+
+  const getObjectSnappingEdges = (node) => {
+    const box = node.getClientRect();
+    const absPos = node.absolutePosition();
+
+    return {
+      vertical: [
+        { guide: Math.round(box.x), offset: Math.round(absPos.x - box.x), snap: 'start' },
+        { guide: Math.round(box.x + box.width / 2), offset: Math.round(absPos.x - box.x - box.width / 2), snap: 'center' },
+        { guide: Math.round(box.x + box.width), offset: Math.round(absPos.x - box.x - box.width), snap: 'end' },
+      ],
+      horizontal: [
+        { guide: Math.round(box.y), offset: Math.round(absPos.y - box.y), snap: 'start' },
+        { guide: Math.round(box.y + box.height / 2), offset: Math.round(absPos.y - box.y - box.height / 2), snap: 'center' },
+        { guide: Math.round(box.y + box.height), offset: Math.round(absPos.y - box.y - box.height), snap: 'end' },
+      ],
+    };
+  }
+
+  const getGuides = (lineGuideStops, itemBounds) => {
+    const resultV = [];
+    const resultH = [];
+
+    lineGuideStops.vertical.forEach((lineGuide) => {
+      itemBounds.vertical.forEach((itemBound) => {
+        const diff = Math.abs(lineGuide - itemBound.guide);
+        if (diff < GUIDELINE_OFFSET) {
+          resultV.push({ lineGuide, diff, snap: itemBound.snap, offset: itemBound.offset });
+        }
+      });
+    });
+
+    lineGuideStops.horizontal.forEach((lineGuide) => {
+      itemBounds.horizontal.forEach((itemBound) => {
+        const diff = Math.abs(lineGuide - itemBound.guide);
+        if (diff < GUIDELINE_OFFSET) {
+          resultH.push({ lineGuide, diff, snap: itemBound.snap, offset: itemBound.offset });
+        }
+      });
+    });
+
+    const guides = [];
+    const minV = resultV.sort((a, b) => a.diff - b.diff)[0];
+    const minH = resultH.sort((a, b) => a.diff - b.diff)[0];
+    if (minV) {
+      guides.push({ lineGuide: minV.lineGuide, offset: minV.offset, orientation: 'V', snap: minV.snap });
+    }
+    if (minH) {
+      guides.push({ lineGuide: minH.lineGuide, offset: minH.offset, orientation: 'H', snap: minH.snap });
+    }
+    return guides;
+  };
+
+  const drawGuides = (guides) => {
+    const layer = layerRef.current;
+    guides.forEach((lg) => {
+      if (lg.orientation === 'H') {
+        const line = new Konva.Line({
+          points: [-6000, 0, 6000, 0],
+          stroke: 'rgb(0, 161, 255)',
+          strokeWidth: 1,
+          name: 'guid-line',
+          dash: [4, 6],
+        });
+        layer.add(line);
+        line.absolutePosition({ x: 0, y: lg.lineGuide });
+      } else if (lg.orientation === 'V') {
+        const line = new Konva.Line({
+          points: [0, -6000, 0, 6000],
+          stroke: 'rgb(0, 161, 255)',
+          strokeWidth: 1,
+          name: 'guid-line',
+          dash: [4, 6],
+        });
+        layer.add(line);
+        line.absolutePosition({ x: lg.lineGuide, y: 0 });
+      }
+    });
+    layer.batchDraw(); // Force immediate update
+  };
+
+  const handleDragMove = (e) => {
+    const layer = layerRef.current;
+    layer.find('.guid-line').forEach((l) => l.destroy());
+
+    const lineGuideStops = getLineGuideStops(e.target);
+    const itemBounds = getObjectSnappingEdges(e.target);
+
+    const guides = getGuides(lineGuideStops, itemBounds);
+
+    if (!guides.length) return;
+
+    drawGuides(guides);
+
+    let absPos = e.target.absolutePosition();
+    guides.forEach((lg) => {
+      if (lg.orientation === 'V') {
+        absPos.x = lg.lineGuide + lg.offset;
+      } else if (lg.orientation === 'H') {
+        absPos.y = lg.lineGuide + lg.offset;
+      }
+    });
+    e.target.absolutePosition(absPos);
+
+    setAttrs({ width: e.currentTarget.attrs.width, height: e.currentTarget.attrs.height })
+    if (action !== ACTIONS.SELECT) return;
+    const target = e.currentTarget;
+    transformerRef.current.nodes([target]);
+  };
+
+  const handleDragEnd = () => {
+    const layer = layerRef.current;
+    layer.find('.guid-line').forEach((l) => l.destroy());
+  };
 
   const handleUndo = () => {
     if (historyStep === 0) return;
@@ -227,7 +364,7 @@ const App = () => {
     });
   };
 
-  const handleDragMove = (index) => (e) => {
+  const handleDragMoveCircle = (index) => (e) => {
     const newPoints = [...curve.controlPoints];
     newPoints[index] = { x: e.target.x(), y: e.target.y() };
 
@@ -317,6 +454,9 @@ const App = () => {
     transformerRef.current.nodes([target]);
   };
 
+  const handleClick = () => {
+    alert('Button clicked!');
+  };
   return (
     <>
       <div className="grid grid-cols-10 w-full h-screen overflow-hidden">
@@ -358,6 +498,7 @@ const App = () => {
             <button onClick={handleExport}>
               <IoMdDownload size={"1.5rem"} />
             </button>
+            <button onClick={() => (setClose(true))}>close</button>
             {/* {JSON.stringify(rectangles)} */}
           </div>
         </div>
@@ -372,7 +513,7 @@ const App = () => {
             onPointerUp={onPointerUp}
             onClick={handleStageClick}
           >
-            <Layer>
+            <Layer ref={layerRef}>
               <Rect
                 x={0}
                 y={0}
@@ -393,7 +534,9 @@ const App = () => {
                   width={rectangle.width}
                   draggable={action === ACTIONS.SELECT}
                   onClick={onClick}
-                  onDragMove={onClick}
+                  onDragMove={handleDragMove}
+                  onDragEnd={handleDragEnd}
+                  name='object'
                 />
               ))}
 
@@ -406,7 +549,9 @@ const App = () => {
                   stroke={strokeColor}
                   strokeWidth={2}
                   draggable={action === ACTIONS.SELECT}
-                  onDragMove={onClick}
+                  onDragMove={handleDragMove}
+                  onDragEnd={handleDragEnd}
+                  name='object'
                 />
               ))}
               {scribbles.map((scribble) => (
@@ -419,8 +564,9 @@ const App = () => {
                   strokeWidth={2}
                   fill={scribble.fillColor}
                   draggable={action === ACTIONS.SELECT}
-                  onClick={onClick}
-                  onDragMove={onClick}
+                  name='object'
+                  onDragMove={handleDragMove}
+                  onDragEnd={handleDragEnd}
                 />
               ))}
 
@@ -429,9 +575,12 @@ const App = () => {
                 stroke="black"
                 strokeWidth={4}
                 lineCap="round"
+                name='object'
                 lineJoin="round"
-                tension={0} // Adjust tension for the desired curve shape
-                closed={false} // Set to true if you want to close the curve
+                onDragMove={handleDragMove}
+                onDragEnd={handleDragEnd}
+                tension={0}
+                closed={close}
               />
               {/* Draw control points */}
               {curve.controlPoints.map((point, i) => (
@@ -439,10 +588,11 @@ const App = () => {
                   key={i}
                   x={point.x}
                   y={point.y}
-                  radius={6}
+                  radius={9}
+                  name='object'
                   fill="red"
                   draggable
-                  onDragMove={handleDragMove(i)}
+                  onDragMove={handleDragMoveCircle(i)}
                 />
               ))}
               <Transformer ref={transformerRef} />
@@ -466,6 +616,9 @@ const App = () => {
             type="text"
             placeholder='height'
           />
+          {
+            isDrawing && !close && <button onClick={() => setClose(true)} className='border'>close</button>
+          }
         </div>
       </div>
     </>
