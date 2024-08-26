@@ -99,7 +99,7 @@ const DrawingApp = () => {
         <Line
           points={curve.points}
           stroke="black"
-          strokeWidth={2}
+          strokeWidth={4}
           lineCap="round"
           lineJoin="round"
           tension={0} // Adjust tension for the desired curve shape
@@ -111,7 +111,7 @@ const DrawingApp = () => {
             key={i}
             x={point.x}
             y={point.y}
-            radius={5}
+            radius={6}
             fill="red"
             draggable
             onDragMove={handleDragMove(i)}
