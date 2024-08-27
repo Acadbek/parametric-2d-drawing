@@ -1,10 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { IoMdDownload } from "react-icons/io";
-import { Arrow, Circle, Layer, Line, Rect, Stage, Transformer } from "react-konva";
+import { Circle, Layer, Line, Rect, Stage, Transformer } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
-import { drawRectangle } from './scripts';
-import LineShape from './components/Line'
+import { drawRectangle } from './scripts'
 
 const GUIDELINE_OFFSET = 5;
 
@@ -19,13 +18,14 @@ const App = () => {
   const [scribbles, setScribbles] = useState([]);
   const [stageSize, setStageSize] = useState({ width: window.innerWidth - 600, height: window.innerHeight });
   const [attrs, setAttrs] = React.useState({ width: 0, height: 0 })
-  const [lines, setLines] = useState([]);
+  const [_, setLines] = useState([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [curve, setCurve] = useState({
     points: [],
     controlPoints: []
   });
   const [close, setClose] = useState(false)
+  const [shapeInfo, setShapeInfo] = useState(null)
 
   const strokeColor = "#000";
   const isPaining = useRef();
@@ -266,9 +266,27 @@ const App = () => {
         setCircles((circles) => [
           ...circles,
           {
+            name: `polygon-${id}`,
+            closed: false,
+            points: [
+              {
+                x,
+                y,
+                formulas: {
+                  y: {
+                    datatype: "IamFormula",
+                    place: y,
+                    KEYID: id
+                  },
+                  x: {
+                    datatype: "IamFormula",
+                    place: y,
+                    KEYID: id
+                  }
+                }
+              },
+            ],
             id,
-            x,
-            y,
             radius: 20,
           },
         ]);
@@ -278,6 +296,8 @@ const App = () => {
         setScribbles((scribbles) => [
           ...scribbles,
           {
+            name: `polygon-${id}`,
+            closed: false,
             id,
             points: [x, y],
           },
@@ -306,7 +326,7 @@ const App = () => {
             if (circle.id === currentShapeId.current) {
               return {
                 ...circle,
-                radius: ((y - circle.y) ** 2 + (x - circle.x) ** 2) ** 0.5,
+                radius: ((y - circle.points[0].y) ** 2 + (x - circle.points[0].x) ** 2) ** 0.5,
               };
             }
             return circle;
@@ -452,14 +472,12 @@ const App = () => {
     if (action !== ACTIONS.SELECT) return;
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
-  };
-
-  const handleClick = () => {
-    alert('Button clicked!');
+    console.log(e);
+    setShapeInfo(e)
   };
   return (
     <>
-      <marquee className="text-red-500" behavior="" direction="left">Website coming soon. Stay tuned</marquee>
+      <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
 
       <div className="grid grid-cols-10 w-full h-screen overflow-hidden">
         {/* Controls */}
@@ -530,7 +548,8 @@ const App = () => {
                   key={rectangle.id}
                   x={rectangle.points[0].x}
                   y={rectangle.points[0].y}
-                  stroke={strokeColor}
+                  stroke={'black'}
+                  fill={null}
                   strokeWidth={2}
                   height={rectangle.height}
                   width={rectangle.width}
@@ -546,8 +565,8 @@ const App = () => {
                 <Circle
                   key={circle.id}
                   radius={circle.radius}
-                  x={circle.x}
-                  y={circle.y}
+                  x={circle.points[0].x}
+                  y={circle.points[0].y}
                   stroke={strokeColor}
                   strokeWidth={2}
                   draggable={action === ACTIONS.SELECT}
@@ -573,6 +592,7 @@ const App = () => {
               ))}
 
               <Line
+                className="haligi-line"
                 points={curve.points}
                 stroke="black"
                 strokeWidth={4}
@@ -618,6 +638,7 @@ const App = () => {
             type="text"
             placeholder='height'
           />
+          {JSON.stringify(shapeInfo.currentTarget)}
           {
             isDrawing && !close && <button onClick={() => setClose(true)} className='border'>close</button>
           }
