@@ -638,7 +638,7 @@ const App = () => {
             type="text"
             placeholder='height'
           />
-          {JSON.stringify(shapeInfo.currentTarget)}
+          {/* {JSON.stringify(shapeInfo.currentTarget)} */}
           {
             isDrawing && !close && <button onClick={() => setClose(true)} className='border'>close</button>
           }
