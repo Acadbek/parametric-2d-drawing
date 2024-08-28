@@ -27,11 +27,11 @@ const App = () => {
   const [close, setClose] = useState(false)
   const [shapeInfo, setShapeInfo] = useState(null)
   const [selectedShapes, setSelectedShapes] = useState([]);
-  const [hoveredRectId, setHoveredRectId] = useState(null);
+  const [hoveradShapeId, setHoveradShapeId] = useState(null);
 
   const handleMouseEnter = (rectId) => {
     if(action === ACTIONS.SELECT) {
-      setHoveredRectId(rectId);
+      setHoveradShapeId(rectId);
       // Change the cursor to a pointer
       document.body.style.cursor = 'pointer';
     }
@@ -40,7 +40,7 @@ const App = () => {
   // Function to handle mouse leave
   const handleMouseLeave = () => {
     if(action === ACTIONS.SELECT) {
-      setHoveredRectId(null);
+      setHoveradShapeId(null);
       // Reset the cursor to default
       document.body.style.cursor = 'default';
     }
@@ -628,7 +628,7 @@ const App = () => {
                   id={rectangle.id}
                   x={rectangle.points[0].x}
                   y={rectangle.points[0].y}
-                  strokeWidth={hoveredRectId === rectangle.id ? 8 : 4}
+                  strokeWidth={hoveradShapeId === rectangle.id ? 10 : 4}
                   height={rectangle.height}
                   width={rectangle.width}
                   draggable={action === ACTIONS.SELECT}
@@ -639,8 +639,7 @@ const App = () => {
                   name='object'
                   fillEnabled={false}
                   fill="transparent"
-                  stroke={hoveredRectId === rectangle.id ? 'red' : 'black'}
-                  strokeOpacity={hoveredRectId === rectangle.id ? 0.1 : 1}
+                  stroke={hoveradShapeId === rectangle.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(rectangle.id)}
                   onMouseLeave={handleMouseLeave}
                 />
@@ -653,13 +652,15 @@ const App = () => {
                   radius={circle.radius}
                   x={circle.points[0].x}
                   y={circle.points[0].y}
-                  stroke={strokeColor}
-                  strokeWidth={4}
                   draggable={action === ACTIONS.SELECT}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(circle.id, 'position', e)}
                   name='object'
+                  stroke={hoveradShapeId === circle.id ? '#00000044' : 'black'}
+                  onMouseLeave={handleMouseLeave}
                   fillEnabled={false}
+                  onMouseEnter={() => handleMouseEnter(circle.id)}
+                  strokeWidth={hoveradShapeId === circle.id ? 10 : 4}
                 />
               ))}
               {scribbles.map((scribble) => (
@@ -669,14 +670,16 @@ const App = () => {
                   lineCap="round"
                   lineJoin="round"
                   points={scribble.points}
-                  stroke={strokeColor}
-                  strokeWidth={4}
                   fill={scribble.fillColor}
                   draggable={action === ACTIONS.SELECT}
                   name='object'
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(scribble.id, 'position', e)}
+                  stroke={hoveradShapeId === scribble.id ? '#00000044' : 'black'}
+                  onMouseLeave={handleMouseLeave}
                   fillEnabled={false}
+                  onMouseEnter={() => handleMouseEnter(scribble.id)}
+                  strokeWidth={hoveradShapeId === scribble.id ? 10 : 4}
                 />
               ))}
 
