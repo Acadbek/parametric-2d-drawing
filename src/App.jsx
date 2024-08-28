@@ -27,6 +27,20 @@ const App = () => {
   const [close, setClose] = useState(false)
   const [shapeInfo, setShapeInfo] = useState(null)
   const [selectedShapes, setSelectedShapes] = useState([]);
+  const [hoveredRectId, setHoveredRectId] = useState(null);
+
+  const handleMouseEnter = (rectId) => {
+    setHoveredRectId(rectId);
+    // Change the cursor to a pointer
+    document.body.style.cursor = 'pointer';
+  };
+
+  // Function to handle mouse leave
+  const handleMouseLeave = () => {
+    setHoveredRectId(null);
+    // Reset the cursor to default
+    document.body.style.cursor = 'default';
+  };
 
   const strokeColor = "#000";
   const isPaining = useRef();
@@ -532,7 +546,6 @@ const App = () => {
     if (action !== ACTIONS.SELECT) return;
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
-    // console.log(e);
     setShapeInfo(e)
     handleSelectShape(e)
   };
@@ -611,8 +624,8 @@ const App = () => {
                   id={rectangle.id}
                   x={rectangle.points[0].x}
                   y={rectangle.points[0].y}
-                  stroke={'black'}
-                  fill={null}
+                  // stroke={'black'}
+                  // fill={null}
                   strokeWidth={4}
                   height={rectangle.height}
                   width={rectangle.width}
@@ -623,6 +636,13 @@ const App = () => {
                   onTap={handleSelectShape}
                   name='object'
                   fillEnabled={false}
+                  fill="transparent"
+                  // Set the stroke to red with opacity if hovered, otherwise black without opacity
+                  stroke={hoveredRectId === rectangle.id ? 'red' : 'black'}
+                  // strokeWidth={2}
+                  strokeOpacity={hoveredRectId === rectangle.id ? 0.1 : 1}
+                  onMouseEnter={() => handleMouseEnter(rectangle.id)}
+                  onMouseLeave={handleMouseLeave}
                 />
               ))}
 
