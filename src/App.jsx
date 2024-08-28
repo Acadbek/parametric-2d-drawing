@@ -30,7 +30,7 @@ const App = () => {
   const [hoveradShapeId, setHoveradShapeId] = useState(null);
 
   const handleMouseEnter = (rectId) => {
-    if(action === ACTIONS.SELECT) {
+    if (action === ACTIONS.SELECT) {
       setHoveradShapeId(rectId);
       // Change the cursor to a pointer
       document.body.style.cursor = 'pointer';
@@ -39,14 +39,15 @@ const App = () => {
 
   // Function to handle mouse leave
   const handleMouseLeave = () => {
-    if(action === ACTIONS.SELECT) {
+    // console.log('tugadi');
+
+    if (action === ACTIONS.SELECT) {
       setHoveradShapeId(null);
       // Reset the cursor to default
       document.body.style.cursor = 'default';
     }
   };
 
-  const strokeColor = "#000";
   const isPaining = useRef();
   const currentShapeId = useRef();
 
@@ -96,7 +97,7 @@ const App = () => {
       return (
         <div key={shapeId} className='flex flex-col gap-4'>
           <h3>{shape?.type}: {shapeId}</h3>
-          {Object.keys(shape).map(key =>
+          {Object?.keys(shape).map(key =>
             (key !== 'id' && key !== 'type') && (
               <label key={key}>
                 {key.charAt(0).toUpperCase() + key.slice(1)}:
@@ -254,6 +255,8 @@ const App = () => {
   };
 
   const handleDragEnd = (id, cor, e) => {
+    // console.log('tugadi');
+
     const layer = layerRef.current;
     layer.find('.guid-line').forEach((l) => l.destroy());
 
@@ -545,11 +548,15 @@ const App = () => {
     );
   };
 
+  const setSelectedBorder = (e) => {
+    const target = e.currentTarget;
+    transformerRef.current.nodes([target]);
+  }
+
   const onClick = (e) => {
     setAttrs({ width: e.currentTarget.attrs.width, height: e.currentTarget.attrs.height })
     if (action !== ACTIONS.SELECT) return;
-    const target = e.currentTarget;
-    transformerRef.current.nodes([target]);
+    setSelectedBorder(e)
     setShapeInfo(e)
     handleSelectShape(e)
   };
@@ -642,6 +649,11 @@ const App = () => {
                   stroke={hoveradShapeId === rectangle.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(rectangle.id)}
                   onMouseLeave={handleMouseLeave}
+                  onMouseUp={(e) => {
+                    setAction(ACTIONS.SELECT)
+                    setSelectedBorder(e)
+                  }
+                  }
                 />
               ))}
 
