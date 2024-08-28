@@ -30,16 +30,20 @@ const App = () => {
   const [hoveredRectId, setHoveredRectId] = useState(null);
 
   const handleMouseEnter = (rectId) => {
-    setHoveredRectId(rectId);
-    // Change the cursor to a pointer
-    document.body.style.cursor = 'pointer';
+    if(action === ACTIONS.SELECT) {
+      setHoveredRectId(rectId);
+      // Change the cursor to a pointer
+      document.body.style.cursor = 'pointer';
+    }
   };
 
   // Function to handle mouse leave
   const handleMouseLeave = () => {
-    setHoveredRectId(null);
-    // Reset the cursor to default
-    document.body.style.cursor = 'default';
+    if(action === ACTIONS.SELECT) {
+      setHoveredRectId(null);
+      // Reset the cursor to default
+      document.body.style.cursor = 'default';
+    }
   };
 
   const strokeColor = "#000";
@@ -624,9 +628,7 @@ const App = () => {
                   id={rectangle.id}
                   x={rectangle.points[0].x}
                   y={rectangle.points[0].y}
-                  // stroke={'black'}
-                  // fill={null}
-                  strokeWidth={4}
+                  strokeWidth={hoveredRectId === rectangle.id ? 8 : 4}
                   height={rectangle.height}
                   width={rectangle.width}
                   draggable={action === ACTIONS.SELECT}
@@ -637,9 +639,7 @@ const App = () => {
                   name='object'
                   fillEnabled={false}
                   fill="transparent"
-                  // Set the stroke to red with opacity if hovered, otherwise black without opacity
                   stroke={hoveredRectId === rectangle.id ? 'red' : 'black'}
-                  // strokeWidth={2}
                   strokeOpacity={hoveredRectId === rectangle.id ? 0.1 : 1}
                   onMouseEnter={() => handleMouseEnter(rectangle.id)}
                   onMouseLeave={handleMouseLeave}
