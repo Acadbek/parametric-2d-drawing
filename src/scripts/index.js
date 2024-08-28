@@ -1,12 +1,16 @@
-import { drawRectangle } from "./rectangle";
-import { drawLine } from "./line";
-import { drawScribble } from "./pencil";
-import { drawCircle, updateCircleRadiusOnPointerMove } from "./circle";
+import { drawRectangle } from "./pointer-move/rectangle";
+import { updateLinePoints } from "./pointer-move/line";
+import { drawScribble } from "./pointer-move/pencil";
+import { drawCircle } from "./pointer-move/circle";
+import { updateScribblePoints } from "./pointer-move/scribble";
+
+// pointer down scripts
+
 
 export {
   drawRectangle,
   drawScribble,
-  drawLine,
-  updateCircleRadiusOnPointerMove,
-  drawCircle
+  updateLinePoints,
+  drawCircle,
+  updateScribblePoints
 }

@@ -3,7 +3,7 @@ import { IoMdDownload } from "react-icons/io";
 import { Circle, Layer, Line, Rect, Stage, Transformer } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
-import { drawRectangle } from './scripts'
+import { drawCircle, drawRectangle, updateLinePoints, updateScribblePoints } from './scripts'
 
 const GUIDELINE_OFFSET = 5;
 
@@ -33,7 +33,7 @@ const App = () => {
     if (action === ACTIONS.SELECT) {
       setHoveradShapeId(rectId);
       // Change the cursor to a pointer
-      document.body.style.cursor = 'pointer';
+      document.body.style.cursor = 'move';
     }
   };
 
@@ -87,33 +87,6 @@ const App = () => {
     );
   };
 
-
-  const renderInputFields = () => {
-    return selectedShapes.map(shapeId => {
-      const shape = rectangles.find(r => r.id === shapeId) || circles.find(c => c.id === shapeId);
-
-      if (!shape) return null; // No shape found, return nothing
-
-      return (
-        <div key={shapeId} className='flex flex-col gap-4'>
-          <h3>{shape?.type}: {shapeId}</h3>
-          {Object?.keys(shape).map(key =>
-            (key !== 'id' && key !== 'type') && (
-              <label key={key}>
-                {key.charAt(0).toUpperCase() + key.slice(1)}:
-                <input
-                  className='border'
-                  type="number"
-                  value={shape[key]}
-                  onChange={(e) => handlePropertyChange(shapeId, key, parseInt(e.target.value))}
-                />
-              </label>
-            )
-          )}
-        </div>
-      );
-    });
-  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -403,41 +376,17 @@ const App = () => {
         break;
       case ACTIONS.CIRCLE:
         setCircles((circles) =>
-          circles.map((circle) => {
-            if (circle.id === currentShapeId.current) {
-              return {
-                ...circle,
-                radius: ((y - circle.points[0].y) ** 2 + (x - circle.points[0].x) ** 2) ** 0.5,
-              };
-            }
-            return circle;
-          })
+          drawCircle(circles, currentShapeId.current, x, y)
         );
         break;
       case ACTIONS.SCRIBBLE:
         setScribbles((scribbles) =>
-          scribbles.map((scribble) => {
-            if (scribble.id === currentShapeId.current) {
-              return {
-                ...scribble,
-                points: [...scribble.points, x, y],
-              };
-            }
-            return scribble;
-          })
+          updateScribblePoints(scribbles, currentShapeId.current, x, y)
         );
         break;
       case ACTIONS.LINE:
         setLines((lines) =>
-          lines.map((line) => {
-            if (line.id === currentShapeId.current) {
-              return {
-                ...line,
-                points: [line.points[0], line.points[1], x, y],
-              };
-            }
-            return line;
-          })
+          updateLinePoints(lines, currentShapeId.current, x, y)
         );
         break;
     }
@@ -560,6 +509,8 @@ const App = () => {
     setShapeInfo(e)
     handleSelectShape(e)
   };
+
+  const [changedRectSize, setChangedRectSize] = useState()
   return (
     <>
       <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
@@ -673,6 +624,11 @@ const App = () => {
                   fillEnabled={false}
                   onMouseEnter={() => handleMouseEnter(circle.id)}
                   strokeWidth={hoveradShapeId === circle.id ? 10 : 4}
+                  onMouseUp={(e) => {
+                    setAction(ACTIONS.SELECT)
+                    setSelectedBorder(e)
+                  }
+                  }
                 />
               ))}
               {scribbles.map((scribble) => (
@@ -692,6 +648,11 @@ const App = () => {
                   fillEnabled={false}
                   onMouseEnter={() => handleMouseEnter(scribble.id)}
                   strokeWidth={hoveradShapeId === scribble.id ? 10 : 4}
+                  onMouseUp={(e) => {
+                    setAction(ACTIONS.SELECT)
+                    setSelectedBorder(e)
+                  }
+                  }
                 />
               ))}
 
@@ -728,7 +689,7 @@ const App = () => {
           </Stage>
         </div>
         <div className='flex flex-col px-1 gap-2 py-4 col-span-2'>
-          {renderInputFields()}
+          <input type="text" placeholder='width' onChange={(e) => handleShapeSizeWithInput(e, Number(e.target.value))} />
           {
             isDrawing && !close && <button onClick={() => setClose(true)} className='border'>close</button>
           }
