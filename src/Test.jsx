@@ -1,137 +1,180 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { IoMdDownload } from "react-icons/io";
-import { Circle, Layer, Line, Rect, Stage, Transformer } from "react-konva";
-import { v4 as uuidv4 } from "uuid";
-import { ACTIONS } from "./constants";
+import { Stage, Layer, Rect, Circle, Line, Transformer } from 'react-konva';
 
 const App = () => {
   const stageRef = useRef();
-  const layerRef = useRef(null);
+  const layerRef = useRef();
   const transformerRef = useRef();
-  const [action, setAction] = useState(ACTIONS.SELECT);
-  const [rectangles, setRectangles] = useState([]);
-  const [circles, setCircles] = useState([]);
-  const [arrows, setArrows] = useState([]);
-  const [scribbles, setScribbles] = useState([]);
-  const [stageSize, setStageSize] = useState({ width: window.innerWidth - 600, height: window.innerHeight });
-  const [selectedShape, setSelectedShape] = useState(null);
+  
+  const [rectangles, setRectangles] = useState([
+    { id: 'rect1', x: 50, y: 60, width: 100, height: 100, fill: 'red' },
+    { id: 'rect2', x: 200, y: 200, width: 150, height: 100, fill: 'green' }
+  ]);
 
-  useEffect(() => {
-    const handleResize = () => {
-      setStageSize({
-        width: window.innerWidth - 600,
-        height: window.innerHeight,
-      });
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const [circles, setCircles] = useState([
+    { id: 'circle1', x: 300, y: 150, radius: 50, fill: 'blue' }
+  ]);
+
+  const [selectedShapes, setSelectedShapes] = useState([]);
 
   const handleSelectShape = (e) => {
-    const shape = e.target;
-    setSelectedShape(shape);
-  };
+    const shapeId = e.target.id();
+    const isSelected = selectedShapes.includes(shapeId);
 
-  const handlePropertyChange = (e, property) => {
-    if (selectedShape) {
-      const value = e.target.value;
-      const newProps = { ...selectedShape.attrs, [property]: value };
-      selectedShape.setAttrs(newProps);
-      setSelectedShape({ ...selectedShape, attrs: newProps });
-      layerRef.current.getLayer().batchDraw();
+    if (isSelected) {
+      setSelectedShapes(selectedShapes.filter(id => id !== shapeId));
+    } else {
+      setSelectedShapes([...selectedShapes, shapeId]);
     }
   };
 
+  const handlePropertyChange = (id, property, value) => {
+    console.log(id, property, value);
+    
+    setRectangles(prevRectangles =>
+      prevRectangles.map(rect =>
+        rect.id === id ? { ...rect, [property]: value } : rect
+      )
+    );
+
+    setCircles(prevCircles =>
+      prevCircles.map(circle =>
+        circle.id === id ? { ...circle, [property]: value } : circle
+      )
+    );
+  };
+
   const renderInputFields = () => {
-    if (!selectedShape) return null;
+    return selectedShapes.map(shapeId => {
+      const rect = rectangles.find(r => r.id === shapeId);
+      const circle = circles.find(c => c.id === shapeId);
 
-    const { x, y, width, height, radius } = selectedShape.attrs;
-
-    return (
-      <div className="right-side">
-        <h3>Shape Properties</h3>
-        <label>
-          X:
-          <input type="number" value={x} onChange={(e) => handlePropertyChange(e, 'x')} />
-        </label>
-        <label>
-          Y:
-          <input type="number" value={y} onChange={(e) => handlePropertyChange(e, 'y')} />
-        </label>
-        {selectedShape instanceof Rect && (
-          <>
+      if (rect) {
+        return (
+          <div key={shapeId}>
+            <h3>Rectangle: {shapeId}</h3>
+            <label>
+              X:
+              <input
+                type="number"
+                value={rect.x}
+                onChange={(e) => handlePropertyChange(shapeId, 'x', parseInt(e.target.value))}
+              />
+            </label>
+            <label>
+              Y:
+              <input
+                type="number"
+                value={rect.y}
+                onChange={(e) => handlePropertyChange(shapeId, 'y', parseInt(e.target.value))}
+              />
+            </label>
             <label>
               Width:
-              <input type="number" value={width} onChange={(e) => handlePropertyChange(e, 'width')} />
+              <input
+                type="number"
+                value={rect.width}
+                onChange={(e) => handlePropertyChange(shapeId, 'width', parseInt(e.target.value))}
+              />
             </label>
             <label>
               Height:
-              <input type="number" value={height} onChange={(e) => handlePropertyChange(e, 'height')} />
+              <input
+                type="number"
+                value={rect.height}
+                onChange={(e) => handlePropertyChange(shapeId, 'height', parseInt(e.target.value))}
+              />
             </label>
-          </>
-        )}
-        {selectedShape instanceof Circle && (
-          <label>
-            Radius:
-            <input type="number" value={radius} onChange={(e) => handlePropertyChange(e, 'radius')} />
-          </label>
-        )}
-      </div>
-    );
+          </div>
+        );
+      } else if (circle) {
+        return (
+          <div key={shapeId}>
+            <h3>Circle: {shapeId}</h3>
+            <label>
+              X:
+              <input
+                type="number"
+                value={circle.x}
+                onChange={(e) => handlePropertyChange(shapeId, 'x', parseInt(e.target.value))}
+              />
+            </label>
+            <label>
+              Y:
+              <input
+                type="number"
+                value={circle.y}
+                onChange={(e) => handlePropertyChange(shapeId, 'y', parseInt(e.target.value))}
+              />
+            </label>
+            <label>
+              Radius:
+              <input
+                type="number"
+                value={circle.radius}
+                onChange={(e) => handlePropertyChange(shapeId, 'radius', parseInt(e.target.value))}
+              />
+            </label>
+          </div>
+        );
+      }
+
+      return null;
+    });
   };
 
   return (
     <div className="app">
       <Stage
-        width={stageSize.width}
-        height={stageSize.height}
+        width={window.innerWidth - 200}
+        height={window.innerHeight}
         ref={stageRef}
-        onMouseDown={handleSelectShape}
-        onTouchStart={handleSelectShape}
+        onMouseDown={(e) => {
+          // Deselect shapes when clicking outside
+          if (e.target === e.target.getStage()) {
+            setSelectedShapes([]);
+          }
+        }}
       >
         <Layer ref={layerRef}>
-          {rectangles.map((rect) => (
+          {rectangles.map(rect => (
             <Rect
               key={rect.id}
+              id={rect.id}
               {...rect}
+              draggable
               onClick={handleSelectShape}
-              onTap={handleSelectShape}
+              onDragEnd={(e) => {
+                handlePropertyChange(rect.id, 'x', e.target.x());
+                handlePropertyChange(rect.id, 'y', e.target.y());
+              }}
             />
           ))}
-          {circles.map((circle) => (
+          {circles.map(circle => (
             <Circle
               key={circle.id}
+              id={circle.id}
               {...circle}
+              draggable
               onClick={handleSelectShape}
-              onTap={handleSelectShape}
+              onDragEnd={(e) => {
+                handlePropertyChange(circle.id, 'x', e.target.x());
+                handlePropertyChange(circle.id, 'y', e.target.y());
+              }}
             />
           ))}
-          {arrows.map((arrow) => (
-            <Line
-              key={arrow.id}
-              {...arrow}
-              onClick={handleSelectShape}
-              onTap={handleSelectShape}
-            />
-          ))}
-          {scribbles.map((scribble) => (
-            <Line
-              key={scribble.id}
-              {...scribble}
-              onClick={handleSelectShape}
-              onTap={handleSelectShape}
-            />
-          ))}
-          {selectedShape && (
-            <Transformer
-              ref={transformerRef}
-              nodes={[selectedShape]}
-              anchorSize={5}
-            />
-          )}
+          <Transformer
+            ref={transformerRef}
+            nodes={selectedShapes.map(id => layerRef.current.findOne(`#${id}`))}
+            boundBoxFunc={(oldBox, newBox) => {
+              return newBox;
+            }}
+          />
         </Layer>
       </Stage>
-      {renderInputFields()}
+      <div className="right-side">
+        {renderInputFields()}
+      </div>
     </div>
   );
 };

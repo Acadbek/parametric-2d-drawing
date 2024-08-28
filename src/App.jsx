@@ -26,6 +26,7 @@ const App = () => {
   });
   const [close, setClose] = useState(false)
   const [shapeInfo, setShapeInfo] = useState(null)
+  const [selectedShapes, setSelectedShapes] = useState([]);
 
   const strokeColor = "#000";
   const isPaining = useRef();
@@ -39,6 +40,61 @@ const App = () => {
     scribbles: [],
   }]);
   const [historyStep, setHistoryStep] = useState(0);
+
+  const handleSelectShape = (e) => {
+    // console.log('eeee', e);
+
+    const shapeId = e.target.id();
+    const isSelected = selectedShapes.includes(shapeId);
+
+    if (isSelected) {
+      setSelectedShapes(selectedShapes.filter(id => id !== shapeId));
+    } else {
+      setSelectedShapes([...selectedShapes, shapeId]);
+    }
+  };
+
+  const handlePropertyChange = (id, property, value) => {
+    setRectangles(prevRectangles =>
+      prevRectangles.map(rect =>
+        rect.id === id ? { ...rect, [property]: value } : rect
+      )
+    );
+
+    setCircles(prevCircles =>
+      prevCircles.map(circle =>
+        circle.id === id ? { ...circle, [property]: value } : circle
+      )
+    );
+  };
+
+
+  const renderInputFields = () => {
+    return selectedShapes.map(shapeId => {
+      const shape = rectangles.find(r => r.id === shapeId) || circles.find(c => c.id === shapeId);
+
+      if (!shape) return null; // No shape found, return nothing
+
+      return (
+        <div key={shapeId} className='flex flex-col gap-4'>
+          <h3>{shape?.type}: {shapeId}</h3>
+          {Object.keys(shape).map(key =>
+            (key !== 'id' && key !== 'type') && (
+              <label key={key}>
+                {key.charAt(0).toUpperCase() + key.slice(1)}:
+                <input
+                  className='border'
+                  type="number"
+                  value={shape[key]}
+                  onChange={(e) => handlePropertyChange(shapeId, key, parseInt(e.target.value))}
+                />
+              </label>
+            )
+          )}
+        </div>
+      );
+    });
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -179,9 +235,13 @@ const App = () => {
     transformerRef.current.nodes([target]);
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (id, cor, e) => {
     const layer = layerRef.current;
     layer.find('.guid-line').forEach((l) => l.destroy());
+
+    const newPosition = e.target.position();
+    handlePropertyChange(id, 'x', newPosition.x);
+    handlePropertyChange(id, 'y', newPosition.y);
   };
 
   const handleUndo = () => {
@@ -472,8 +532,9 @@ const App = () => {
     if (action !== ACTIONS.SELECT) return;
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
-    console.log(e);
+    // console.log(e);
     setShapeInfo(e)
+    handleSelectShape(e)
   };
   return (
     <>
@@ -532,6 +593,8 @@ const App = () => {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onClick={handleStageClick}
+            onMouseDown={handleSelectShape}
+            onTouchStart={handleSelectShape}
           >
             <Layer ref={layerRef}>
               <Rect
@@ -542,52 +605,58 @@ const App = () => {
                 id="bg"
                 onClick={() => transformerRef.current.nodes([])}
               />
-
               {rectangles.map((rectangle) => (
                 <Rect
                   key={rectangle.id}
+                  id={rectangle.id}
                   x={rectangle.points[0].x}
                   y={rectangle.points[0].y}
                   stroke={'black'}
                   fill={null}
-                  strokeWidth={2}
+                  strokeWidth={4}
                   height={rectangle.height}
                   width={rectangle.width}
                   draggable={action === ACTIONS.SELECT}
                   onClick={onClick}
                   onDragMove={handleDragMove}
-                  onDragEnd={handleDragEnd}
+                  onDragEnd={(e) => handleDragEnd(rectangle.id, 'position', e)}
+                  onTap={handleSelectShape}
                   name='object'
+                  fillEnabled={false}
                 />
               ))}
 
               {circles.map((circle) => (
                 <Circle
                   key={circle.id}
+                  id={circle.id}
                   radius={circle.radius}
                   x={circle.points[0].x}
                   y={circle.points[0].y}
                   stroke={strokeColor}
-                  strokeWidth={2}
+                  strokeWidth={4}
                   draggable={action === ACTIONS.SELECT}
                   onDragMove={handleDragMove}
-                  onDragEnd={handleDragEnd}
+                  onDragEnd={(e) => handleDragEnd(circle.id, 'position', e)}
                   name='object'
+                  fillEnabled={false}
                 />
               ))}
               {scribbles.map((scribble) => (
                 <Line
                   key={scribble.id}
+                  id={scribble.id}
                   lineCap="round"
                   lineJoin="round"
                   points={scribble.points}
                   stroke={strokeColor}
-                  strokeWidth={2}
+                  strokeWidth={4}
                   fill={scribble.fillColor}
                   draggable={action === ACTIONS.SELECT}
                   name='object'
                   onDragMove={handleDragMove}
-                  onDragEnd={handleDragEnd}
+                  onDragEnd={(e) => handleDragEnd(scribble.id, 'position', e)}
+                  fillEnabled={false}
                 />
               ))}
 
@@ -603,6 +672,8 @@ const App = () => {
                 onDragEnd={handleDragEnd}
                 tension={0}
                 closed={close}
+                fill={null}
+                fillEnabled={false}
               />
               {/* Draw control points */}
               {curve.controlPoints.map((point, i) => (
@@ -622,23 +693,7 @@ const App = () => {
           </Stage>
         </div>
         <div className='flex flex-col px-1 gap-2 py-4 col-span-2'>
-          <label htmlFor="width">Width</label>
-          <input
-            onChange={(e) => handleInputChange(e, 'width')}
-            value={attrs.width}
-            className='border'
-            type="text"
-            placeholder='width'
-          />
-          <label htmlFor="height">Height</label>
-          <input
-            onChange={(e) => handleInputChange(e, 'height')}
-            value={attrs.height}
-            className='border'
-            type="text"
-            placeholder='height'
-          />
-          {/* {JSON.stringify(shapeInfo.currentTarget)} */}
+          {renderInputFields()}
           {
             isDrawing && !close && <button onClick={() => setClose(true)} className='border'>close</button>
           }
