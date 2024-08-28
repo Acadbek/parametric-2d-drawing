@@ -1,9 +1,9 @@
 import React from 'react';
-import { IoMdDownload } from "react-icons/io";
 import { Circle, Layer, Line, Rect, Stage, Transformer } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
 import { handleRedo, handleUndo, saveState, drawCircle, drawRectangle, handleExport, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints } from './scripts'
+import { Download, UndoIcon, RedoIcon, PencilIcon, CircleIcon, LineIcon, Rectangle, Hand } from './components';
 
 const GUIDELINE_OFFSET = 5;
 
@@ -28,13 +28,24 @@ const App = () => {
   const [selectedShapes, setSelectedShapes] = React.useState([]);
   const [hoveradShapeId, setHoveradShapeId] = React.useState(null);
   const [curve, setCurve] = React.useState({ points: [], controlPoints: [] });
-  const [stageSize, setStageSize] = React.useState({ width: window.innerWidth - 600, height: window.innerHeight });
+  const [stageSize, setStageSize] = React.useState({ width: window.innerWidth, height: window.innerHeight });
   const [history, setHistory] = React.useState([{
     rectangles: [],
     circles: [],
     arrows: [],
     scribbles: [],
   }]);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setStageSize({
+        width: window.innerWidth - 600,
+        height: window.innerHeight,
+      });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleSelectShape = (e) => {
     const shapeId = e.target.id();
@@ -60,17 +71,6 @@ const App = () => {
       )
     );
   };
-
-  React.useEffect(() => {
-    const handleResize = () => {
-      setStageSize({
-        width: window.innerWidth - 600,
-        height: window.innerHeight,
-      });
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // snap -----------------------------------------
   const getLineGuideStops = (skipShape) => {
@@ -373,50 +373,54 @@ const App = () => {
     <>
       <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
 
-      <div className="grid grid-cols-10 w-full h-screen overflow-hidden">
+      <div className="w-full h-screen overflow-hidden">
         {/* Controls */}
-        <div className="col-span-2 border z-10 w-full py-2">
+        <div className="absolute left-0 h-full bg-white top-0 border z-10 py-2">
           <div className="flex flex-col gap-3 py-2 px-3">
             <button
               className={action === ACTIONS.SELECT ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
               onClick={() => setAction(ACTIONS.SELECT)}
             >
-              Select
+              <Hand />
             </button>
             <button
               className={action === ACTIONS.RECTANGLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
               onClick={() => setAction(ACTIONS.RECTANGLE)}
             >
-              Rectangle
+              <Rectangle />
             </button>
             <button
               className={action === ACTIONS.LINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
               onClick={() => setAction(ACTIONS.LINE)}
             >
-              Line
+              <LineIcon />
             </button>
             <button
               className={action === ACTIONS.CIRCLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
               onClick={() => setAction(ACTIONS.CIRCLE)}
             >
-              Circle
+              <CircleIcon />
             </button>
             <button
               className={action === ACTIONS.SCRIBBLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
               onClick={() => setAction(ACTIONS.SCRIBBLE)}
             >
-              Pencil
+              <PencilIcon />
             </button>
-            <button onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>Undo</button>
-            <button onClick={() => handleRedo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>Redo</button>
+            <button onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
+              <RedoIcon />
+            </button>
+            <button onClick={() => handleRedo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
+              <UndoIcon />
+            </button>
             <button onClick={() => handleExport(stageRef)}>
-              <IoMdDownload size={"1.5rem"} />
+              <Download />
             </button>
             <button onClick={() => (setClose(true))}>close</button>
           </div>
         </div>
         {/* Canvas */}
-        <div className="border col-span-6">
+        <div className="border">
           <Stage
             ref={stageRef}
             width={stageSize.width}
