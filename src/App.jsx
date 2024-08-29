@@ -406,19 +406,30 @@ const App = () => {
   };
 
   const handleControlInput = (property, e) => {
-    const value = parseFloat(e.target.value);
+    const numberValue = property === 'width' || property === 'height' || property === 'strokeWidth' || property === 'radius'
+      ? parseInt(e.target.value)
+      : parseFloat(e.target.value);
 
-    // Update the shape's property based on the input
-    if (!isNaN(value)) {
-      setTanlanganShape(prev => ({
-        ...prev,
-        [property]: value
-      }));
-
-      // Trigger shape update
-
+    if (!isNaN(numberValue)) {
+      setRectangles(prevRectangles =>
+        prevRectangles.map(rect =>
+          rect.id === tanlanganShape.id
+            ? {
+              ...rect,
+              [property]: numberValue,
+              points: property === 'x' || property === 'y'
+                ? [{ ...rect.points[0], [property]: numberValue }]
+                : rect.points
+            }
+            : rect
+        )
+      );
+      console.log("Введено число:", numberValue);
+    } else {
+      console.error("Введено некорректное значение.");
     }
   };
+
 
 
   return (
@@ -444,7 +455,16 @@ const App = () => {
             {Object.keys(tanlanganShape).filter((pr) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth').map((property) => (
               <div className='flex' key={property}>
                 <p>{property}:</p>
-                <input onChange={(e) => handleControlInput(property, e)} value={tanlanganShape[property]} className='border p-1 w-[60px]' type="text" placeholder={property} />
+                <input
+                  key={tanlanganShape.id + '-' + property}
+                  max={1000}
+                  min={1}
+                  onChange={(e) => handleControlInput(property, e)}
+                  defaultValue={tanlanganShape[property]}
+                  type="number"
+                  className='border p-1 w-[60px]'
+                  placeholder={property}
+                />
               </div>
             ))}
           </div>
