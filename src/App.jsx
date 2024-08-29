@@ -264,6 +264,7 @@ const App = () => {
           {
             name: `polygon-${currentShapeId.current}`,
             closed: false,
+            type: 'rectangle',
             points: [
               {
                 x,
@@ -295,6 +296,7 @@ const App = () => {
           {
             name: `polygon-${id}`,
             closed: false,
+            type: 'circle',
             points: [
               {
                 x,
@@ -323,6 +325,7 @@ const App = () => {
         setScribbles((scribbles) => [
           ...scribbles,
           {
+            type: 'scribble',
             name: `polygon-${id}`,
             closed: false,
             id,
@@ -405,31 +408,76 @@ const App = () => {
     setSelectedBorder(e)
   };
 
+  // const handleControlInput = (property, e) => {
+  //   const numberValue = property === 'width' || property === 'height' || property === 'strokeWidth' || property === 'radius'
+  //     ? parseInt(e.target.value)
+  //     : parseFloat(e.target.value);
+
+  //   if (!isNaN(numberValue)) {
+  //     setRectangles(prevRectangles =>
+  //       prevRectangles.map(rect =>
+  //         rect.id === tanlanganShape.id
+  //           ? {
+  //             ...rect,
+  //             [property]: numberValue,
+  //             // Update points only if it's a rectangle and property is x or y
+  //             points: (rect.type === 'rectangle' && (property === 'x' || property === 'y'))
+  //               ? [{ ...rect.points[0], [property]: numberValue }]
+  //               : rect.points,
+  //             // Update radius for circles
+  //             radius: rect.type === 'circle' && property === 'radius'
+  //               ? numberValue
+  //               : rect.radius,
+  //           }
+  //           : rect
+  //       )
+  //     );
+  //     console.log("Введено число:", numberValue);
+  //   } else {
+  //     console.error("Введено некорректное значение.");
+  //   }
+  // };
+
   const handleControlInput = (property, e) => {
-    const numberValue = property === 'width' || property === 'height' || property === 'strokeWidth' || property === 'radius'
-      ? parseInt(e.target.value)
-      : parseFloat(e.target.value);
+    const numberValue = parseFloat(e.target.value); // Use parseFloat for all cases
 
     if (!isNaN(numberValue)) {
-      setRectangles(prevRectangles =>
-        prevRectangles.map(rect =>
-          rect.id === tanlanganShape.id
-            ? {
-              ...rect,
-              [property]: numberValue,
-              points: property === 'x' || property === 'y'
-                ? [{ ...rect.points[0], [property]: numberValue }]
-                : rect.points
-            }
-            : rect
-        )
-      );
-      console.log("Введено число:", numberValue);
+      // Update for rectangles and circles
+      if (tanlanganShape.type === 'circle') {
+        // Update for circles
+        setCircles(prevCircles =>
+          prevCircles.map(circle =>
+            circle.id === tanlanganShape.id
+              ? {
+                ...circle,
+                [property]: numberValue,
+                points: circle.type === 'circle' && (property === 'x' || property === 'y')
+                  ? circle.points.map(point => ({ ...point, [property]: numberValue }))
+                  : circle.points
+              }
+              : circle
+          )
+        );
+      } else if (tanlanganShape.type === 'rectangle') {
+        // Update for rectangles
+        setRectangles(prevRectangles =>
+          prevRectangles.map(rect =>
+            rect.id === tanlanganShape.id
+              ? {
+                ...rect,
+                [property]: numberValue,
+                points: rect.type === 'rectangle' && (property === 'x' || property === 'y')
+                  ? rect.points.map(point => ({ ...point, [property]: numberValue }))
+                  : rect.points
+              }
+              : rect
+          )
+        );
+      }
     } else {
-      console.error("Введено некорректное значение.");
+      console.error("Incorrect value");
     }
   };
-
 
 
   return (
@@ -494,6 +542,7 @@ const App = () => {
               />
               {rectangles.map((rectangle) => (
                 <Rect
+                  type="rectangle"
                   key={rectangle.id}
                   id={rectangle.id}
                   x={rectangle.points[0].x}
@@ -521,6 +570,7 @@ const App = () => {
 
               {circles.map((circle) => (
                 <Circle
+                  type="circle"
                   key={circle.id}
                   id={circle.id}
                   radius={circle.radius}
