@@ -1,84 +1,90 @@
-import React, { useState, useRef } from "react";
-import { Stage, Layer, Rect } from "react-konva";
+import React, { useState, useRef } from 'react';
+import { Stage, Layer, Rect, Line } from 'react-konva';
 
-const KonvaApp = () => {
-  const [selectedId, setSelectedId] = useState(null); // Tanlangan shakl ID sini saqlash uchun
+const App = () => {
+  const [rectProps, setRectProps] = useState({
+    x: 50,
+    y: 50,
+    width: 100,
+    height: 100,
+  });
+  
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [startY, setStartY] = useState(0);
   const stageRef = useRef(null);
+  const layerRef = useRef(null);
 
-  const handleStageClick = (e) => {
-    console.log(e.target);
-      console.log(e.target === stageRef.current);
-    
-    // Agar boshqa shakl tanlanmagan bo'lsa, `selectedId` ni null qilib qo'yamiz
-    if (e.target === stageRef.current) {
-      setSelectedId(null);
-    }
+  const handleMouseDown = (e) => {
+    setIsDrawing(true);
+    const { x, y } = e.target.getStage().getPointerPosition();
+    setStartX(x);
+    setStartY(y);
   };
 
-  const handleShapeClick = (e) => {
-    // Tanlangan shaklning ID sini olish
-    const id = e.target.id();
-    setSelectedId(id);
+  const handleMouseMove = (e) => {
+    if (!isDrawing) return;
+    const { x, y } = e.target.getStage().getPointerPosition();
+    const width = x - startX;
+    const height = y - startY;
+    setRectProps({
+      x: Math.min(startX, x),
+      y: Math.min(startY, y),
+      width: Math.abs(width),
+      height: Math.abs(height),
+    });
   };
 
-  const handleDragStart = (e) => {
-    // Sudrash boshlandi - tanlangan shaklni `focus` qiling
-    const id = e.target.id();
-    setSelectedId(id);
+  const handleMouseUp = () => {
+    setIsDrawing(false);
   };
 
-  const handleDragEnd = (e) => {
-    // Shakl sudralib tugagandan so'ng koordinatalarni olish
-    const id = e.target.id();
-    const x = e.target.x();
-    const y = e.target.y();
-    console.log(`Shape ${id} dragged to (${x}, ${y})`);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setRectProps({
+      ...rectProps,
+      [name]: Number(value),
+    });
   };
 
   return (
     <div>
+      <div>
+        <label>
+          X: <input type="number" name="x" value={rectProps.x} onChange={handleInputChange} />
+        </label>
+        <label>
+          Y: <input type="number" name="y" value={rectProps.y} onChange={handleInputChange} />
+        </label>
+        <label>
+          Width: <input type="number" name="width" value={rectProps.width} onChange={handleInputChange} />
+        </label>
+        <label>
+          Height: <input type="number" name="height" value={rectProps.height} onChange={handleInputChange} />
+        </label>
+      </div>
+
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}
-        onMouseDown={handleStageClick}
         ref={stageRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
       >
-        <Layer>
+        <Layer ref={layerRef}>
           <Rect
-            id="rect1"
-            x={100}
-            y={100}
-            width={100}
-            height={100}
-            fill={selectedId === "rect1" ? "red" : "green"} // Tanlangan shakl rangi o'zgaradi
+            x={rectProps.x}
+            y={rectProps.y}
+            width={rectProps.width}
+            height={rectProps.height}
+            fill="blue"
             draggable
-            onClick={handleShapeClick} // Shakl bosilganda ishlaydi
-            onDragStart={handleDragStart} // Sudrash boshlanganda ishlaydi
-            onDragEnd={handleDragEnd} // Sudrash tugagandan so'ng ishlaydi
-          />
-          <Rect
-            id="rect2"
-            x={300}
-            y={100}
-            width={100}
-            height={100}
-            fill={selectedId === "rect2" ? "red" : "blue"}
-            draggable
-            onClick={handleShapeClick}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
           />
         </Layer>
       </Stage>
-
-      {/* Div element tanlangan shakl bo'lganda ko'rsatiladi */}
-      {selectedId && (
-        <div style={{ position: "absolute", top: 20, right: 20, background: "lightgray", padding: "10px" }}>
-          <p>Tanlangan shakl ID: {selectedId}</p>
-        </div>
-      )}
     </div>
   );
 };
 
-export default KonvaApp;
+export default App;

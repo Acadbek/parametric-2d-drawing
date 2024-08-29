@@ -15,18 +15,39 @@ const App = () => {
   const currentShapeId = React.useRef();
 
   const [, setLines] = React.useState([]);
-  const [, setShapeInfo] = React.useState(null)
   const [arrows, setArrows] = React.useState([]);
   const [close, setClose] = React.useState(false)
   const [circles, setCircles] = React.useState([]);
   const [scribbles, setScribbles] = React.useState([]);
-  const [rectangles, setRectangles] = React.useState([]);
+  const [rectangles, setRectangles] = React.useState(
+    [
+      {
+        name: 'asd',
+        points: [
+          {
+            x: 100,
+            y: 100,
+            formulas: {
+              y: {
+                "datatype": "IamFormula",
+                "place": "y",
+                "KEYID": "1afnw5r7n5MQRHSGQG1R"
+              },
+              x: {
+                "datatype": "IamFormula",
+                "place": "y",
+                "KEYID": "1afnw5r7n5MQRHSGQG1R"
+              }
+            }
+          },
+        ]
+      }
+    ]
+  );
   const [historyStep, setHistoryStep] = React.useState(0);
   const [isDrawing, setIsDrawing] = React.useState(false);
   const [action, setAction] = React.useState(ACTIONS.SELECT);
-  const [, setAttrs] = React.useState({ width: 0, height: 0 })
   const [selectedShapes, setSelectedShapes] = React.useState([]);
-  const [selectedShape, setSelectedShape] = React.useState(null);
   const [hoveradShapeId, setHoveradShapeId] = React.useState(null);
   const [curve, setCurve] = React.useState({ points: [], controlPoints: [] });
   const [stageSize, setStageSize] = React.useState({ width: window.innerWidth, height: window.innerHeight });
@@ -36,6 +57,7 @@ const App = () => {
     arrows: [],
     scribbles: [],
   }]);
+  const [tanlanganShape, setTanlanganShape] = React.useState(null)
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -49,9 +71,6 @@ const App = () => {
   }, []);
 
   const handleSelectShape = (e) => {
-    if (e.target.attrs.id === 'bg') {
-      setSelectedShape(null)
-    }
     const shapeId = e.target.id();
     const isSelected = selectedShapes.includes(shapeId);
 
@@ -178,8 +197,14 @@ const App = () => {
 
   const handleDragMove = (e) => {
     console.log('drag move');
-    const id = e.target.id()
-    setSelectedShape(id)
+    const { x, y, width, height } = e.target.attrs;
+    setTanlanganShape((prev) => ({
+      ...prev,
+      x,
+      y,
+      width, height
+    }));
+
     const layer = layerRef.current;
     layer.find('.guid-line').forEach((l) => l.destroy());
 
@@ -202,7 +227,6 @@ const App = () => {
     });
     e.target.absolutePosition(absPos);
 
-    setAttrs({ width: e.currentTarget.attrs.width, height: e.currentTarget.attrs.height })
     if (action !== ACTIONS.SELECT) return;
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
@@ -322,8 +346,8 @@ const App = () => {
   };
 
   const onPointerMove = () => {
-    // console.log('pointer move');
-   
+    console.log('pointer move');
+
     if (action === ACTIONS.SELECT || !isPainting.current) return
 
     const stage = stageRef.current;
@@ -368,21 +392,35 @@ const App = () => {
     });
   };
 
+  // click qilganda select bolganiligini bildirib turuvchi border qoshadi
   const setSelectedBorder = (e) => {
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
   }
 
   const onClick = (e) => {
-    setAttrs({ width: e.currentTarget.attrs.width, height: e.currentTarget.attrs.height })
+    setTanlanganShape(e.target.attrs)
+
     if (action !== ACTIONS.SELECT) return;
     setSelectedBorder(e)
-    setShapeInfo(e)
-    const id = e.target.id();
-    console.log('cliked: ', id);
-    
-    setSelectedShape(id)
   };
+
+  const handleControlInput = (property, e) => {
+    const value = parseFloat(e.target.value);
+
+    // Update the shape's property based on the input
+    if (!isNaN(value)) {
+      setTanlanganShape(prev => ({
+        ...prev,
+        [property]: value
+      }));
+
+      // Trigger shape update
+
+    }
+  };
+
+
   return (
     <>
       <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
@@ -400,14 +438,18 @@ const App = () => {
           action={action}
           setAction={setAction}
           setClose={setClose}
-          setSelectedShape={setSelectedShape}
         />
-        {selectedShape && (
-          <div className='controlls border rounded-xl shadow-xl w-[200px] h-[700px] z-10 absolute top-1/2 right-5 transform  -translate-y-1/2'>
-            {/* control input fields here */}
-            {JSON.stringify(selectedShape)}
+        {tanlanganShape && (
+          <div className='controlls flex flex-col p-2 gap-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
+            {Object.keys(tanlanganShape).filter((pr) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth').map((property) => (
+              <div className='flex' key={property}>
+                <p>{property}:</p>
+                <input onChange={(e) => handleControlInput(property, e)} value={tanlanganShape[property]} className='border p-1 w-[60px]' type="text" placeholder={property} />
+              </div>
+            ))}
           </div>
         )}
+
         {/* Canvas */}
         <div className="border">
           <Stage
@@ -447,14 +489,11 @@ const App = () => {
                   name='object'
                   fillEnabled={false}
                   fill="transparent"
-                  // onMouseOut={() => setSelectedShape(rectangle.id)}
                   stroke={hoveradShapeId === rectangle.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, rectangle.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, rectangle.id)}
                   onMouseUp={(e) => {
                     setAction(ACTIONS.SELECT)
-                    setSelectedBorder(e)
-                    // selectedShape(rectangle.id)
                   }
                   }
                 />

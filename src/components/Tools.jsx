@@ -13,16 +13,11 @@ export const Tools = (
     setArrows,
     setScribbles,
     setHistoryStep,
-    setSelectedShape
   }
 ) => {
 
   const onClick = (action) => {
-    if (action === ACTIONS.SELECT || action == ACTIONS) {
-      setSelectedShape(null)
-    }
     setAction(action)
-    setSelectedShape(true)
   }
 
   return (
