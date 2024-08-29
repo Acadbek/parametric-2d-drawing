@@ -2,14 +2,14 @@ import React from 'react';
 import { Circle, Layer, Line, Rect, Stage, Transformer } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
-import { handleRedo, handleUndo, saveState, drawCircle, drawRectangle, handleExport, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints } from './scripts'
-import { Download, UndoIcon, RedoIcon, PencilIcon, CircleIcon, LineIcon, Rectangle, Hand } from './components';
+import { saveState, drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints } from './scripts'
+import { Tools } from './components/Tools';
 
 const GUIDELINE_OFFSET = 5;
 
 const App = () => {
   const stageRef = React.useRef();
-  const isPaining = React.useRef();
+  const isPainting = React.useRef();
   const layerRef = React.useRef(null);
   const transformerRef = React.useRef();
   const currentShapeId = React.useRef();
@@ -26,6 +26,7 @@ const App = () => {
   const [action, setAction] = React.useState(ACTIONS.SELECT);
   const [, setAttrs] = React.useState({ width: 0, height: 0 })
   const [selectedShapes, setSelectedShapes] = React.useState([]);
+  const [selectedShape, setSelectedShape] = React.useState(null);
   const [hoveradShapeId, setHoveradShapeId] = React.useState(null);
   const [curve, setCurve] = React.useState({ points: [], controlPoints: [] });
   const [stageSize, setStageSize] = React.useState({ width: window.innerWidth, height: window.innerHeight });
@@ -48,6 +49,9 @@ const App = () => {
   }, []);
 
   const handleSelectShape = (e) => {
+    if (e.target.attrs.id === 'bg') {
+      setSelectedShape(null)
+    }
     const shapeId = e.target.id();
     const isSelected = selectedShapes.includes(shapeId);
 
@@ -173,6 +177,9 @@ const App = () => {
   // end of snap -------------------------------
 
   const handleDragMove = (e) => {
+    console.log('drag move');
+    const id = e.target.id()
+    setSelectedShape(id)
     const layer = layerRef.current;
     layer.find('.guid-line').forEach((l) => l.destroy());
 
@@ -202,7 +209,7 @@ const App = () => {
   };
 
   const handleDragEnd = (id, cor, e) => {
-    // console.log('tugadi');
+    // console.log('drag end');
 
     const layer = layerRef.current;
     layer.find('.guid-line').forEach((l) => l.destroy());
@@ -212,15 +219,18 @@ const App = () => {
     handlePropertyChange(id, 'y', newPosition.y);
   };
 
-  const onPointerDown = () => {
-    if (action === ACTIONS.SELECT) return;
+  const onPointerDown = (e) => {
+    console.log('is drawing', isPainting);
 
     const stage = stageRef.current;
+
+    if (action === ACTIONS.SELECT) return;
+
     const { x, y } = stage.getPointerPosition();
     const id = uuidv4();
 
     currentShapeId.current = id;
-    isPaining.current = true;
+    isPainting.current = true;
 
     switch (action) {
       case ACTIONS.RECTANGLE:
@@ -312,7 +322,9 @@ const App = () => {
   };
 
   const onPointerMove = () => {
-    if (action === ACTIONS.SELECT || !isPaining.current) return
+    // console.log('pointer move');
+   
+    if (action === ACTIONS.SELECT || !isPainting.current) return
 
     const stage = stageRef.current;
     const { x, y } = stage.getPointerPosition();
@@ -340,7 +352,7 @@ const App = () => {
   };
 
   const onPointerUp = () => {
-    isPaining.current = false;
+    isPainting.current = false;
   };
 
   const handleDragMoveCircle = (index) => (e) => {
@@ -366,59 +378,36 @@ const App = () => {
     if (action !== ACTIONS.SELECT) return;
     setSelectedBorder(e)
     setShapeInfo(e)
-    handleSelectShape(e)
+    const id = e.target.id();
+    console.log('cliked: ', id);
+    
+    setSelectedShape(id)
   };
-
   return (
     <>
       <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
 
       <div className="w-full h-screen overflow-hidden">
         {/* Controls */}
-        <div className="absolute left-0 h-full bg-white top-0 border z-10 py-2">
-          <div className="flex flex-col gap-3 py-2 px-3">
-            <button
-              className={action === ACTIONS.SELECT ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
-              onClick={() => setAction(ACTIONS.SELECT)}
-            >
-              <Hand />
-            </button>
-            <button
-              className={action === ACTIONS.RECTANGLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
-              onClick={() => setAction(ACTIONS.RECTANGLE)}
-            >
-              <Rectangle />
-            </button>
-            <button
-              className={action === ACTIONS.LINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
-              onClick={() => setAction(ACTIONS.LINE)}
-            >
-              <LineIcon />
-            </button>
-            <button
-              className={action === ACTIONS.CIRCLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
-              onClick={() => setAction(ACTIONS.CIRCLE)}
-            >
-              <CircleIcon />
-            </button>
-            <button
-              className={action === ACTIONS.SCRIBBLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
-              onClick={() => setAction(ACTIONS.SCRIBBLE)}
-            >
-              <PencilIcon />
-            </button>
-            <button onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
-              <RedoIcon />
-            </button>
-            <button onClick={() => handleRedo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
-              <UndoIcon />
-            </button>
-            <button onClick={() => handleExport(stageRef)}>
-              <Download />
-            </button>
-            <button onClick={() => (setClose(true))}>close</button>
+        <Tools
+          historyStep={historyStep}
+          history={history}
+          setRectangles={setRectangles}
+          setCircles={setCircles}
+          setArrows={setArrows}
+          setScribbles={setScribbles}
+          setHistoryStep={setHistoryStep}
+          action={action}
+          setAction={setAction}
+          setClose={setClose}
+          setSelectedShape={setSelectedShape}
+        />
+        {selectedShape && (
+          <div className='controlls border rounded-xl shadow-xl w-[200px] h-[700px] z-10 absolute top-1/2 right-5 transform  -translate-y-1/2'>
+            {/* control input fields here */}
+            {JSON.stringify(selectedShape)}
           </div>
-        </div>
+        )}
         {/* Canvas */}
         <div className="border">
           <Stage
@@ -430,7 +419,7 @@ const App = () => {
             onPointerUp={onPointerUp}
             onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
             onMouseDown={handleSelectShape}
-            onTouchStart={handleSelectShape}
+          // onTouchStart={handleSelectShape}
           >
             <Layer ref={layerRef}>
               <Rect
@@ -458,12 +447,14 @@ const App = () => {
                   name='object'
                   fillEnabled={false}
                   fill="transparent"
+                  // onMouseOut={() => setSelectedShape(rectangle.id)}
                   stroke={hoveradShapeId === rectangle.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, rectangle.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, rectangle.id)}
                   onMouseUp={(e) => {
                     setAction(ACTIONS.SELECT)
                     setSelectedBorder(e)
+                    // selectedShape(rectangle.id)
                   }
                   }
                 />
@@ -480,6 +471,7 @@ const App = () => {
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(circle.id, 'position', e)}
                   name='object'
+                  onClick={onClick}
                   stroke={hoveradShapeId === circle.id ? '#00000044' : 'black'}
                   fillEnabled={false}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, circle.id)}

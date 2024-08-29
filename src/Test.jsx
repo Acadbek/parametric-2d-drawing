@@ -1,153 +1,84 @@
-import React, { useState } from 'react';
-import { Stage, Layer, Rect, Circle, Arc, Line } from 'react-konva';
+import React, { useState, useRef } from "react";
+import { Stage, Layer, Rect } from "react-konva";
 
-const App = () => {
-  // Initial state for shape properties
-  const [shapes, setShapes] = useState({
-    rectangle: { x: 50, y: 60, width: 100, height: 100 },
-    circle: { x: 200, y: 200, radius: 50 },
-    arc: { x: 400, y: 200, innerRadius: 40, outerRadius: 50, angle: 90 },
-    spline: { points: [60, 300, 100, 350, 150, 300, 200, 350], tension: 0.5 },
-  });
+const KonvaApp = () => {
+  const [selectedId, setSelectedId] = useState(null); // Tanlangan shakl ID sini saqlash uchun
+  const stageRef = useRef(null);
 
-  // Handle input changes
-  const handleInputChange = (shape, property, value) => {
-    setShapes((prevShapes) => ({
-      ...prevShapes,
-      [shape]: {
-        ...prevShapes[shape],
-        [property]: property === 'points' ? value.split(',').map(Number) : parseFloat(value),
-      },
-    }));
+  const handleStageClick = (e) => {
+    console.log(e.target);
+      console.log(e.target === stageRef.current);
+    
+    // Agar boshqa shakl tanlanmagan bo'lsa, `selectedId` ni null qilib qo'yamiz
+    if (e.target === stageRef.current) {
+      setSelectedId(null);
+    }
+  };
+
+  const handleShapeClick = (e) => {
+    // Tanlangan shaklning ID sini olish
+    const id = e.target.id();
+    setSelectedId(id);
+  };
+
+  const handleDragStart = (e) => {
+    // Sudrash boshlandi - tanlangan shaklni `focus` qiling
+    const id = e.target.id();
+    setSelectedId(id);
+  };
+
+  const handleDragEnd = (e) => {
+    // Shakl sudralib tugagandan so'ng koordinatalarni olish
+    const id = e.target.id();
+    const x = e.target.x();
+    const y = e.target.y();
+    console.log(`Shape ${id} dragged to (${x}, ${y})`);
   };
 
   return (
     <div>
-      <div>
-        {/* Input fields for rectangle */}
-        <h3>Rectangle</h3>
-        <label>
-          Width:
-          <input
-            type="number"
-            value={shapes.rectangle.width}
-            onChange={(e) => handleInputChange('rectangle', 'width', e.target.value)}
-          />
-        </label>
-        <label>
-          Height:
-          <input
-            type="number"
-            value={shapes.rectangle.height}
-            onChange={(e) => handleInputChange('rectangle', 'height', e.target.value)}
-          />
-        </label>
-
-        {/* Input fields for circle */}
-        <h3>Circle</h3>
-        <label>
-          Radius:
-          <input
-            type="number"
-            value={shapes.circle.radius}
-            onChange={(e) => handleInputChange('circle', 'radius', e.target.value)}
-          />
-        </label>
-
-        {/* Input fields for arc */}
-        <h3>Arc</h3>
-        <label>
-          Inner Radius:
-          <input
-            type="number"
-            value={shapes.arc.innerRadius}
-            onChange={(e) => handleInputChange('arc', 'innerRadius', e.target.value)}
-          />
-        </label>
-        <label>
-          Outer Radius:
-          <input
-            type="number"
-            value={shapes.arc.outerRadius}
-            onChange={(e) => handleInputChange('arc', 'outerRadius', e.target.value)}
-          />
-        </label>
-        <label>
-          Angle:
-          <input
-            type="number"
-            value={shapes.arc.angle}
-            onChange={(e) => handleInputChange('arc', 'angle', e.target.value)}
-          />
-        </label>
-
-        {/* Input fields for spline */}
-        <h3>Spline</h3>
-        <label>
-          Points (comma-separated):
-          <input
-            type="text"
-            value={shapes.spline.points.join(',')}
-            onChange={(e) => handleInputChange('spline', 'points', e.target.value)}
-          />
-        </label>
-        <label>
-          Tension:
-          <input
-            type="number"
-            step="0.1"
-            value={shapes.spline.tension}
-            onChange={(e) => handleInputChange('spline', 'tension', e.target.value)}
-          />
-        </label>
-      </div>
-
-      <Stage width={window.innerWidth} height={window.innerHeight}>
+      <Stage
+        width={window.innerWidth}
+        height={window.innerHeight}
+        onMouseDown={handleStageClick}
+        ref={stageRef}
+      >
         <Layer>
-          {/* Rectangle Shape */}
           <Rect
-            x={shapes.rectangle.x}
-            y={shapes.rectangle.y}
-            width={shapes.rectangle.width}
-            height={shapes.rectangle.height}
-            fill="lightblue"
+            id="rect1"
+            x={100}
+            y={100}
+            width={100}
+            height={100}
+            fill={selectedId === "rect1" ? "red" : "green"} // Tanlangan shakl rangi o'zgaradi
             draggable
+            onClick={handleShapeClick} // Shakl bosilganda ishlaydi
+            onDragStart={handleDragStart} // Sudrash boshlanganda ishlaydi
+            onDragEnd={handleDragEnd} // Sudrash tugagandan so'ng ishlaydi
           />
-
-          {/* Circle Shape */}
-          <Circle
-            x={shapes.circle.x}
-            y={shapes.circle.y}
-            radius={shapes.circle.radius}
-            fill="orange"
+          <Rect
+            id="rect2"
+            x={300}
+            y={100}
+            width={100}
+            height={100}
+            fill={selectedId === "rect2" ? "red" : "blue"}
             draggable
-          />
-
-          {/* Arc Shape */}
-          <Arc
-            x={shapes.arc.x}
-            y={shapes.arc.y}
-            innerRadius={shapes.arc.innerRadius}
-            outerRadius={shapes.arc.outerRadius}
-            angle={shapes.arc.angle}
-            fill="green"
-            draggable
-          />
-
-          {/* Spline Shape */}
-          <Line
-            points={shapes.spline.points}
-            stroke="purple"
-            strokeWidth={2}
-            tension={shapes.spline.tension}
-            lineCap="round"
-            lineJoin="round"
-            draggable
+            onClick={handleShapeClick}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           />
         </Layer>
       </Stage>
+
+      {/* Div element tanlangan shakl bo'lganda ko'rsatiladi */}
+      {selectedId && (
+        <div style={{ position: "absolute", top: 20, right: 20, background: "lightgray", padding: "10px" }}>
+          <p>Tanlangan shakl ID: {selectedId}</p>
+        </div>
+      )}
     </div>
   );
 };
 
-export default App;
+export default KonvaApp;
