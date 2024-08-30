@@ -7,6 +7,7 @@ import { handleExport } from "./export";
 import { handleMouseEnter, handleMouseLeave } from "./mouse-events";
 import { handleRedo, handleUndo, saveState } from "./history";
 import { handleStageClick } from "./line-scripts";
+import { drawArc } from "./pointer-move/arc";
 
 export {
   drawRectangle,
@@ -20,5 +21,6 @@ export {
   handleRedo,
   handleUndo,
   saveState,
-  handleStageClick
+  handleStageClick,
+  drawArc
 }

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Circle, Layer, Line, Rect, Stage, Transformer } from "react-konva";
+import { Circle, Layer, Line, Rect, Stage, Transformer, Arc, Ellipse } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
-import { saveState, drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints } from './scripts'
+import { saveState, drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints, drawArc } from './scripts'
 import { Tools } from './components/Tools';
 
 const GUIDELINE_OFFSET = 5;
@@ -19,6 +19,12 @@ const App = () => {
   const [close, setClose] = React.useState(false)
   const [circles, setCircles] = React.useState([]);
   const [scribbles, setScribbles] = React.useState([]);
+  const [ellipses, setEllipses] = React.useState([{
+    x: 150,
+    y: 100,
+    radiusX: 0,
+    radiusY: 0,
+  }]);
   const [rectangles, setRectangles] = React.useState(
     [
       {
@@ -44,7 +50,9 @@ const App = () => {
       }
     ]
   );
+  const [arcs, setArcs] = React.useState([]);
   const [historyStep, setHistoryStep] = React.useState(0);
+  const [splines, setSplines] = React.useState([]);
   const [isDrawing, setIsDrawing] = React.useState(false);
   const [action, setAction] = React.useState(ACTIONS.SELECT);
   const [selectedShapes, setSelectedShapes] = React.useState([]);
@@ -62,7 +70,7 @@ const App = () => {
   React.useEffect(() => {
     const handleResize = () => {
       setStageSize({
-        width: window.innerWidth - 600,
+        width: window.innerWidth,
         height: window.innerHeight,
       });
     };
@@ -336,6 +344,63 @@ const App = () => {
       case ACTIONS.LINE:
         setIsDrawing(true)
         break;
+      case ACTIONS.ARC:
+        setArcs((arc) => [
+          ...arc,
+          {
+            name: `arc-${currentShapeId.current}`,
+            closed: false,
+            type: 'arc',
+            points: [
+              {
+                x,
+                y,
+                formulas: {
+                  y: {
+                    datatype: "IamFormula",
+                    place: y,
+                    KEYID: id
+                  },
+                  x: {
+                    datatype: "IamFormula",
+                    place: y,
+                    KEYID: id
+                  }
+                }
+              },
+            ],
+            id,
+            height: 20,
+            width: 20,
+          },
+        ]);
+        break;
+      case ACTIONS.ELLIPSE:
+        setIsDrawing(true);
+        setEllipses((ellipses) => [
+          ...ellipses,
+          {
+            id,
+            x,
+            y,
+            radiusX: 0,
+            radiusY: 0,
+            fill: 'yellow',
+            stroke: 'black',
+            strokeWidth: 2,
+          },
+        ]);
+        break
+      case ACTIONS.SPLINE:
+      case ACTIONS.SPLINE:
+        setIsDrawing(true);
+        setSplines((splines) => [
+          ...splines,
+          {
+            id,
+            points: [x, y]
+          },
+        ]);
     }
     saveState(
       rectangles,
@@ -375,6 +440,35 @@ const App = () => {
           updateLinePoints(lines, currentShapeId.current, x, y)
         );
         break;
+      case ACTIONS.ARC:
+        drawArc(arcs, currentShapeId.current, x, y, setArcs)
+        break;
+      case ACTIONS.ELLIPSE:
+        setIsDrawing(false)
+        setEllipses((prevEllipses) =>
+          prevEllipses.map((ellipse) =>
+            ellipse.id === currentShapeId.current
+              ? {
+                ...ellipse,
+                radiusX: Math.abs(ellipse.x - x),
+                radiusY: Math.abs(ellipse.y - y),
+              }
+              : ellipse
+          )
+        );
+        break;
+      case ACTIONS.SPLINE:
+        setIsDrawing(false)
+        setSplines((prevSplines) =>
+          prevSplines.map((spline) =>
+            spline.id === currentShapeId.current
+              ? {
+                ...spline,
+                points: [...spline.points, x, y],
+              }
+              : spline
+          )
+        );
     }
   };
 
@@ -479,7 +573,6 @@ const App = () => {
     }
   };
 
-
   return (
     <>
       <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
@@ -529,6 +622,7 @@ const App = () => {
             onPointerUp={onPointerUp}
             onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
             onMouseDown={handleSelectShape}
+
           // onTouchStart={handleSelectShape}
           >
             <Layer ref={layerRef}>
@@ -617,7 +711,39 @@ const App = () => {
                   }
                 />
               ))}
-
+              {arcs.map((arc, i) => (
+                <Arc
+                  type="arc"
+                  key={arc.id}
+                  id={arc.id}
+                  x={arc.points[0].x}
+                  y={arc.points[0].y}
+                  strokeWidth={hoveradShapeId === arc.id ? 10 : 4}
+                  height={arc.height}
+                  angle={90}
+                  innerRadius={100}
+                  outerRadius={200}
+                  width={arc.width}
+                  draggable={action === ACTIONS.SELECT}
+                  onClick={onClick}
+                  onDragMove={handleDragMove}
+                  onDragEnd={(e) => handleDragEnd(arc.id, 'position', e)}
+                  onTap={handleSelectShape}
+                  name='object'
+                  draggable
+                  onDragMove={handleDragMove}
+                  onDragEnd={(e) => handleDragEnd(arc.id, null, e)}
+                  onClick={handleSelectShape}
+                  fill="transparent"
+                  stroke={hoveradShapeId === arc.id ? '#00000044' : 'black'}
+                  onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, arc.id)}
+                  onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, arc.id)}
+                  onMouseUp={(e) => {
+                    setAction(ACTIONS.SELECT)
+                  }
+                  }
+                />
+              ))}
               <Line
                 className="haligi-line"
                 points={curve.points}
@@ -644,6 +770,54 @@ const App = () => {
                   fill="red"
                   draggable
                   onDragMove={handleDragMoveCircle(i)}
+                />
+              ))}
+              {ellipses.map((ellipse) => (
+                <Ellipse
+                  key={ellipse.id}
+                  id={ellipse.id}
+                  x={ellipse.x}
+                  y={ellipse.y}
+                  radiusX={ellipse.radiusX}
+                  radiusY={ellipse.radiusY}
+                  fillEnabled={false}
+                  strokeWidth={hoveradShapeId === ellipse.id ? 10 : 4}
+                  draggable
+                  onDragMove={handleDragMove}
+                  onDragEnd={(e) => handleDragEnd(ellipse.id, null, e)}
+                  onClick={handleSelectShape}
+                  fill="transparent"
+                  stroke={hoveradShapeId === ellipse.id ? '#00000044' : 'black'}
+                  onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, ellipse.id)}
+                  onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, ellipse.id)}
+                  onMouseUp={(e) => {
+                    setAction(ACTIONS.SELECT)
+                  }
+                  }
+                />
+              ))}
+              {splines.map((spline) => (
+                <Line
+                  key={spline.id}
+                  points={spline.points}
+                  lineCap="round"
+                  lineJoin="round"
+                  tension={0.5}  // Controls the smoothness of the curve
+                  closed={false}
+                  fillEnabled={false}
+                  strokeWidth={hoveradShapeId === spline.id ? 10 : 4}
+                  draggable
+                  onDragMove={handleDragMove}
+                  onDragEnd={(e) => handleDragEnd(spline.id, null, e)}
+                  onClick={handleSelectShape}
+                  fill="transparent"
+                  stroke={hoveradShapeId === spline.id ? '#00000044' : 'black'}
+                  onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, spline.id)}
+                  onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, spline.id)}
+                  onMouseUp={(e) => {
+                    setAction(ACTIONS.SELECT)
+                  }
+                  }
                 />
               ))}
               <Transformer ref={transformerRef} />

@@ -22,7 +22,7 @@ export const Tools = (
 
   return (
     <div className="absolute left-0 h-full bg-white top-0 border z-10 py-2">
-      <div className="flex flex-col gap-3 py-2 px-3">
+      <div className="flex flex-col gap-3 py-2 px-3 text-black">
         <button
           className={action === ACTIONS.SELECT ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
           // onClick={() => setAction(ACTIONS.SELECT)}
@@ -54,6 +54,9 @@ export const Tools = (
         >
           <PencilIcon />
         </button>
+        <button onClick={() => onClick(ACTIONS.ARC)} className={action === ACTIONS.ARC ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>Arc</button>
+        <button onClick={() => onClick(ACTIONS.ELLIPSE)} className={action === ACTIONS.ELLIPSE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>elp</button>
+        <button onClick={() => onClick(ACTIONS.SPLINE)} className={action === ACTIONS.SPLINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>spl</button>
         <button onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
           <RedoIcon />
         </button>

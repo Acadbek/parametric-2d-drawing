@@ -5,5 +5,8 @@ export const ACTIONS = {
   SCRIBBLE: "SCRIBBLE",
   ARROW: "ARROW",
   TEXT: "TEXT",
-  LINE: "LINE"
+  LINE: "LINE",
+  ARC: 'ARC',
+  ELLIPSE: 'ELLIPSE',
+  SPLINE: 'SPLINE'
 };
