@@ -1,11 +1,14 @@
 import React from 'react';
-import { Circle, Layer, Line, Rect, Stage, Transformer, Arc, Ellipse } from "react-konva";
+import { Text, Circle, Layer, Image, Line, Rect, Stage, Transformer, Arc, Ellipse } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
 import { saveState, drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints, drawArc } from './scripts'
 import { Tools } from './components/Tools';
-
+import { Html } from 'react-konva-utils';
+// import hatchImg from '/hatch.jpg'
+// import useImage from 'use-image';
 const GUIDELINE_OFFSET = 5;
+
 
 const App = () => {
   const stageRef = React.useRef();
@@ -13,6 +16,16 @@ const App = () => {
   const layerRef = React.useRef(null);
   const transformerRef = React.useRef();
   const currentShapeId = React.useRef();
+
+  // text
+  const [texts, setTexts] = React.useState([]); // Sahifadagi matnlar ro'yxati
+  const [isAddingText, setIsAddingText] = React.useState(false); // Matn qo'shish rejimi
+  const [selectedTextId, setSelectedTextId] = React.useState(null); // Tanlangan matn IDsi
+  const [newText, setNewText] = React.useState(""); // Foydalanuvchi kiritadigan yangi matn
+  const [editingTextId, setEditingTextId] = React.useState(null); // Tahrirlanayotgan matn IDsi
+  const inputRef = React.useRef(null); // HTML input elementiga referens
+
+  // text end
 
   const [, setLines] = React.useState([]);
   const [arrows, setArrows] = React.useState([]);
@@ -50,6 +63,7 @@ const App = () => {
       }
     ]
   );
+  const [tanlanganShape, setTanlanganShape] = React.useState(null)
   const [arcs, setArcs] = React.useState([]);
   const [historyStep, setHistoryStep] = React.useState(0);
   const [splines, setSplines] = React.useState([]);
@@ -65,7 +79,112 @@ const App = () => {
     arrows: [],
     scribbles: [],
   }]);
-  const [tanlanganShape, setTanlanganShape] = React.useState(null)
+
+  // const [image] = useImage('/hatch.jpg'); // Image path
+
+  const handleTextClick = (e) => {
+    if (isAddingText) {
+      // Agar matn qo'shish rejimi yoqilgan bo'lsa
+      const stage = e.target.getStage();
+      const pointerPosition = stage.getPointerPosition();
+
+      // Yangi matn qo'shish
+      const id = texts.length + 1;
+      setTexts([
+        ...texts,
+        {
+          id,
+          x: pointerPosition.x,
+          y: pointerPosition.y,
+          text: "Matn",
+          isEditing: false,
+        },
+      ]);
+
+      setIsAddingText(false); // Matn qo'shish rejimini o'chirish
+    } else if (editingTextId !== null) {
+      // Agar matn tahrirlanayotgan bo'lsa, tahrirni saqlash
+      handleTextBlur(editingId);
+    }
+  };
+
+  const handleTextDblClick = (id) => {
+    const textNode = texts.find((text) => text.id === id);
+    if (textNode) {
+      setNewText(textNode.text);
+      setEditingTextId(id);
+      textNode.isEditing = true;
+      setTexts([...texts]);
+      // Fokus input elementiga o'tadi
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  };
+
+  const handleTextChange = (e) => {
+    setNewText(e.target.value);
+  };
+
+  const handleTextBlur = (id) => {
+    const textNode = texts.find((text) => text.id === id);
+    if (textNode) {
+      textNode.text = newText;
+      textNode.isEditing = false;
+      setTexts([...texts]);
+      setSelectedTextId(null);
+      setEditingTextId(null);
+    }
+  };
+
+  const handleTextKeyDown = (e, id) => {
+    const inputElement = inputRef.current;
+
+    if (!inputElement) return;
+
+    const { selectionStart, selectionEnd } = inputElement;
+    const selectedText = newText.substring(selectionStart, selectionEnd);
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      // Enter tugmasi bosilganda matnni saqlash, shift + enter holatini tekshirish
+      handleTextBlur(id);
+      e.preventDefault(); // Enter tugmasi standart harakatlarini to'xtatish
+    } else if (e.key === "Backspace") {
+      if (selectionStart === selectionEnd) {
+        // Backspace tugmasi bosilganda tanlangan matnni o'chirish yoki oldingi belgini o'chirish
+        setNewText((prev) => prev.slice(0, selectionStart - 1) + prev.slice(selectionStart));
+        inputElement.setSelectionRange(selectionStart - 1, selectionStart - 1); // Kursorni oldinga surish
+      } else {
+        // Tanlangan matnni o'chirish
+        setNewText((prev) => prev.slice(0, selectionStart) + prev.slice(selectionEnd));
+        inputElement.setSelectionRange(selectionStart, selectionStart); // Kursorni tanlangan joyga surish
+      }
+      e.preventDefault(); // Backspace tugmasining standart harakatlarini to'xtatish
+    } else if (e.key === "Delete") {
+      if (selectionStart === selectionEnd) {
+        // Delete tugmasi bosilganda tanlangan matnni o'chirish yoki keyingi belgini o'chirish
+        setNewText((prev) => prev.slice(0, selectionStart) + prev.slice(selectionStart + 1));
+        inputElement.setSelectionRange(selectionStart, selectionStart); // Kursorni keyingi joyga surish
+      } else {
+        // Tanlangan matnni o'chirish
+        setNewText((prev) => prev.slice(0, selectionStart) + prev.slice(selectionEnd));
+        inputElement.setSelectionRange(selectionStart, selectionStart); // Kursorni tanlangan joyga surish
+      }
+      e.preventDefault(); // Delete tugmasining standart harakatlarini to'xtatish
+    }
+  };
+
+  // Matn tahrirlanayotgan paytda sahifada har qanday bosish matnni saqlash uchun
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (inputRef.current && !inputRef.current.contains(e.target)) {
+        if (editingId !== null) {
+          handleTextBlur(editingId);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [editingTextId]);
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -81,6 +200,7 @@ const App = () => {
   const handleSelectShape = (e) => {
     const shapeId = e.target.id();
     const isSelected = selectedShapes.includes(shapeId);
+    handleTextClick(e)
 
     if (isSelected) {
       setSelectedShapes(selectedShapes.filter(id => id !== shapeId));
@@ -497,40 +617,9 @@ const App = () => {
 
   const onClick = (e) => {
     setTanlanganShape(e.target.attrs)
-
     if (action !== ACTIONS.SELECT) return;
     setSelectedBorder(e)
   };
-
-  // const handleControlInput = (property, e) => {
-  //   const numberValue = property === 'width' || property === 'height' || property === 'strokeWidth' || property === 'radius'
-  //     ? parseInt(e.target.value)
-  //     : parseFloat(e.target.value);
-
-  //   if (!isNaN(numberValue)) {
-  //     setRectangles(prevRectangles =>
-  //       prevRectangles.map(rect =>
-  //         rect.id === tanlanganShape.id
-  //           ? {
-  //             ...rect,
-  //             [property]: numberValue,
-  //             // Update points only if it's a rectangle and property is x or y
-  //             points: (rect.type === 'rectangle' && (property === 'x' || property === 'y'))
-  //               ? [{ ...rect.points[0], [property]: numberValue }]
-  //               : rect.points,
-  //             // Update radius for circles
-  //             radius: rect.type === 'circle' && property === 'radius'
-  //               ? numberValue
-  //               : rect.radius,
-  //           }
-  //           : rect
-  //       )
-  //     );
-  //     console.log("Введено число:", numberValue);
-  //   } else {
-  //     console.error("Введено некорректное значение.");
-  //   }
-  // };
 
   const handleControlInput = (property, e) => {
     const numberValue = parseFloat(e.target.value); // Use parseFloat for all cases
@@ -576,6 +665,7 @@ const App = () => {
   return (
     <>
       <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
+      {/* <button className='absolute top-5 right-5 z-50' onClick={() => setIsAddingText(true)}>Text</button> */}
 
       <div className="w-full h-screen overflow-hidden">
         {/* Controls */}
@@ -590,6 +680,7 @@ const App = () => {
           action={action}
           setAction={setAction}
           setClose={setClose}
+          setIsAddingText={() => setIsAddingText(true)}
         />
         {tanlanganShape && (
           <div className='controlls flex flex-col p-2 gap-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
@@ -634,6 +725,7 @@ const App = () => {
                 id="bg"
                 onClick={() => transformerRef.current.nodes([])}
               />
+              {/* <LionImage /> */}
               {rectangles.map((rectangle) => (
                 <Rect
                   type="rectangle"
@@ -641,6 +733,9 @@ const App = () => {
                   id={rectangle.id}
                   x={rectangle.points[0].x}
                   y={rectangle.points[0].y}
+                  // fillPatternImage={image}
+                  // fillPatternRepeat="repeat"
+                  cornerRadius={10}
                   strokeWidth={hoveradShapeId === rectangle.id ? 10 : 4}
                   height={rectangle.height}
                   width={rectangle.width}
@@ -650,13 +745,14 @@ const App = () => {
                   onDragEnd={(e) => handleDragEnd(rectangle.id, 'position', e)}
                   onTap={handleSelectShape}
                   name='object'
-                  fillEnabled={false}
-                  fill="transparent"
+                  fillEnabled={false} // hatch qoshish un ochirish kerak
+                  fill="transparent" // hatch qoshish un ochirish kerak
                   stroke={hoveradShapeId === rectangle.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, rectangle.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, rectangle.id)}
                   onMouseUp={(e) => {
                     setAction(ACTIONS.SELECT)
+                    setSelectedBorder(e)
                   }
                   }
                 />
@@ -672,10 +768,10 @@ const App = () => {
                   y={circle.points[0].y}
                   draggable={action === ACTIONS.SELECT}
                   onDragMove={handleDragMove}
-                  onDragEnd={(e) => handleDragEnd(circle.id, 'position', e)}
                   name='object'
                   onClick={onClick}
                   stroke={hoveradShapeId === circle.id ? '#00000044' : 'black'}
+                  onDragEnd={(e) => handleDragEnd(circle.id, 'position', e)}
                   fillEnabled={false}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, circle.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, circle.id)}
@@ -730,10 +826,6 @@ const App = () => {
                   onDragEnd={(e) => handleDragEnd(arc.id, 'position', e)}
                   onTap={handleSelectShape}
                   name='object'
-                  draggable
-                  onDragMove={handleDragMove}
-                  onDragEnd={(e) => handleDragEnd(arc.id, null, e)}
-                  onClick={handleSelectShape}
                   fill="transparent"
                   stroke={hoveradShapeId === arc.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, arc.id)}
@@ -819,6 +911,57 @@ const App = () => {
                   }
                   }
                 />
+              ))}
+              {texts.map((text) => (
+                <React.Fragment key={text.id}>
+                  <Text
+                    x={text.x}
+                    y={text.y}
+                    text={text.text}
+                    fontSize={24}
+                    fontFamily="Calibri"
+                    fill="black"
+                    draggable
+                    onDblClick={() => handleTextDblClick(text.id)}
+                    onClick={() => setSelectedTextId(text.id)}
+                    onDragEnd={(e) => {
+                      const updatedTexts = texts.map((t) =>
+                        t.id === text.id
+                          ? { ...t, x: e.target.x(), y: e.target.y() }
+                          : t
+                      );
+                      setTexts(updatedTexts);
+                    }}
+                  />
+                  {/* Matnni tahrirlash uchun HTML textarea elementi */}
+                  {text.isEditing && (
+                    <Html>
+                      <textarea
+                        value={newText}
+                        onChange={handleTextChange}
+                        onBlur={() => handleTextBlur(text.id)}
+                        onKeyDown={(e) => handleTextKeyDown(e, text.id)}
+                        ref={inputRef}
+                        style={{
+                          position: "absolute",
+                          top: text.y,
+                          left: text.x,
+                          fontSize: 24,
+                          fontFamily: "Calibri",
+                          background: "white", // Orqa fon rangini ko'rinmas qilish
+                          border: "none", // Chiziqni olib tashlash
+                          outline: "none", // Fokus chiziqlarini olib tashlash
+                          caretColor: "black", // Foydalanuvchi imlovchini ko'radi
+                          width: `${Math.max(newText.length + 10, 1)}ch`, // Textarea kengligini matnga moslashtirish
+                          height: `${Math.max(newText.split('\n').length, 1) * 30}px`, // Textarea balandligini matnga moslashtirish
+                          padding: 0, // Foydalanuvchi yozayotgan paytda matn yaqin bo'lishi uchun paddingni olib tashlash
+                          resize: "none", // Textarea o'lchamini foydalanuvchi o'zgartirishiga yo'l qo'ymaydi
+                        }}
+                        autoFocus
+                      />
+                    </Html>
+                  )}
+                </React.Fragment>
               ))}
               <Transformer ref={transformerRef} />
             </Layer>

@@ -3,7 +3,8 @@ import { Download, UndoIcon, RedoIcon, PencilIcon, CircleIcon, LineIcon, Rectang
 import { handleExport, handleRedo, handleUndo } from "../scripts";
 
 export const Tools = (
-  { action,
+  {
+    action,
     setAction,
     setClose,
     historyStep,
@@ -13,11 +14,15 @@ export const Tools = (
     setArrows,
     setScribbles,
     setHistoryStep,
+    setIsAddingText
   }
 ) => {
 
   const onClick = (action) => {
     setAction(action)
+    if (action === 'TEXT') {
+      setIsAddingText()
+    }
   }
 
   return (
@@ -57,6 +62,7 @@ export const Tools = (
         <button onClick={() => onClick(ACTIONS.ARC)} className={action === ACTIONS.ARC ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>Arc</button>
         <button onClick={() => onClick(ACTIONS.ELLIPSE)} className={action === ACTIONS.ELLIPSE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>elp</button>
         <button onClick={() => onClick(ACTIONS.SPLINE)} className={action === ACTIONS.SPLINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>spl</button>
+        <button onClick={() => onClick(ACTIONS.TEXT)} className={action === ACTIONS.TEXT ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>text</button>
         <button onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
           <RedoIcon />
         </button>

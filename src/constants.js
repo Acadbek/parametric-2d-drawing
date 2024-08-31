@@ -8,5 +8,5 @@ export const ACTIONS = {
   LINE: "LINE",
   ARC: 'ARC',
   ELLIPSE: 'ELLIPSE',
-  SPLINE: 'SPLINE'
+  SPLINE: 'SPLINE',
 };

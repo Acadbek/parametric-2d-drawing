@@ -10,11 +10,11 @@ Tasks for that project
 1- a parametric 2D canas drawing Project...
 2- there will be a area at left side and the inputs will come from there...(This inputs will be flexable my customer can add new parameters here)...
 3- İnside drawing we  will do able to those :
-        Circle: Draws a circle by specifying a center point and a radius.
+        -- Circle: Draws a circle by specifying a center point and a radius.
         Arc: Creates an arc, which is a portion of a circle.
-        Rectangle: Draws a rectangle by specifying two corner points.
-        Ellipse: Draws an ellipse or elliptical arcs.
-        Spline: Creates smooth curves that pass through or near a set of points.
+        -- Rectangle: Draws a rectangle by specifying two corner points.
+        -- Ellipse: Draws an ellipse or elliptical arcs.
+        -- Spline: Creates smooth curves that pass through or near a set of points.
         Hatch: Fills a bounded area with a pattern, solid color, or gradient.
         Text: Adds text to your drawing, either as single-line text or multiline text (paragraphs).
         Dim (Dimension): Adds dimension lines to show the size or distance of objects in your drawing.
