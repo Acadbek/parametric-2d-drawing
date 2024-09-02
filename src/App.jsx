@@ -620,7 +620,7 @@ const App = () => {
     const shapes = stageRef.current.find(".object")
     // console.log(shapes);
     setAllShapes(shapes)
-    
+
     setTanlanganShape(e.target.attrs)
     if (action !== ACTIONS.SELECT) return;
     setSelectedBorder(e)
@@ -667,8 +667,9 @@ const App = () => {
     }
   };
 
-  const handleShowParametrs = () => {
-    setShowParams((prev) => !prev)
+  const handleShowParametrs = (e) => {
+    // console.log(e.target.checked);
+    setShowParams(e.target.checked)
   }
 
   return (
@@ -708,6 +709,14 @@ const App = () => {
                 />
               </div>
             ))}
+            <div className='flex items-center gap-2'>
+              <label className="switch">
+                <input
+                  type="checkbox" onChange={handleShowParametrs} />
+                <span className="slider round"></span>
+              </label>
+              <span>Show parametres</span>
+            </div>
             <button onClick={handleShowParametrs} className='border'>show</button>
           </div>
         )}

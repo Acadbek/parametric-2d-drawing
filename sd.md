@@ -16,8 +16,8 @@ Tasks for that project
         -- Ellipse: Draws an ellipse or elliptical arcs.
         -- Spline: Creates smooth curves that pass through or near a set of points.
         Hatch: Fills a bounded area with a pattern, solid color, or gradient.
-        Text: Adds text to your drawing, either as single-line text or multiline text (paragraphs).
-        Dim (Dimension): Adds dimension lines to show the size or distance of objects in your drawing.
+        --Text: Adds text to your drawing, either as single-line text or multiline text (paragraphs).
+        --Dim (Dimension): Adds dimension lines to show the size or distance of objects in your drawing.
         Trim: Trims or cuts objects at their intersections or along a specified boundary.
         Extend: Extends objects to meet the edges of other objects.
         Offset: Creates parallel copies of objects at a specified distance.
