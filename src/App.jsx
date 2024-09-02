@@ -668,9 +668,91 @@ const App = () => {
   };
 
   const handleShowParametrs = (e) => {
-    // console.log(e.target.checked);
     setShowParams(e.target.checked)
   }
+
+  const deleteShape = () => {
+    if (!tanlanganShape || !tanlanganShape.id) {
+      return;
+    }
+    const shapeId = tanlanganShape.id;
+    const shapeToDelete = stageRef.current.findOne(`#${shapeId}`);
+    if (shapeToDelete) {
+      shapeToDelete.destroy();
+      stageRef.current.draw();
+      setAllShapes(stageRef.current.find(".object"))
+      transformerRef.current.nodes([]);
+    } else {
+      alert('Select one shape')
+    }
+  };
+
+
+  const copyShape = () => {
+    if (!tanlanganShape || !tanlanganShape.id) {
+      alert('Select a shape to copy');
+      return;
+    }
+
+    const shapeId = tanlanganShape.id;
+    const shapeToCopy = stageRef.current.findOne(`#${shapeId}`);
+    const layer = layerRef.current;
+
+    if (shapeToCopy) {
+      console.log('copied', shapeToCopy);
+
+      // Clone the shape with initial properties
+      const clonedShape = shapeToCopy.clone({
+        x: shapeToCopy.x() + 10, // Slight offset to differentiate the clone visually
+        y: shapeToCopy.y() + 10,
+        id: uuidv4(), // Assign a new unique ID
+        draggable: true, // Make the cloned shape draggable
+        name: 'object',
+        width: shapeToCopy.width(),
+        height: shapeToCopy.height(),
+        fill: 'transparent', // or the same as the original
+      });
+
+      // Set additional properties and event handlers
+      clonedShape.stroke(hoveradShapeId === clonedShape.id() ? '#00000044' : 'black');
+      clonedShape.strokeWidth(hoveradShapeId === clonedShape.id() ? 10 : 4);
+
+      // Add event handlers to the cloned shape
+      clonedShape.on('click', onClick);
+      clonedShape.on('dragmove', handleDragMove);
+      clonedShape.on('dragend', (e) => handleDragEnd(clonedShape.id(), 'position', e));
+      clonedShape.on('mouseenter', () => handleMouseEnter(action, setHoveradShapeId, clonedShape.id()));
+      clonedShape.on('mouseleave', () => handleMouseLeave(action, setHoveradShapeId, clonedShape.id()));
+      clonedShape.on('mouseup', (e) => setSelectedBorder(e));
+
+      // Add the cloned shape to the layer
+      layer.add(clonedShape);
+      layer.batchDraw(); // Redraw layer for performance
+
+      // Update the list of all shapes
+      setAllShapes(stageRef.current.find('.object'));
+    } else {
+      alert('Select a shape to copy');
+    }
+  };
+
+  const filledShape = () => {
+    const shapes = stageRef.current.find(".object");
+
+    shapes.forEach((shape, index) => {
+      if (index === 0) return; // Skip the first shape
+
+      // Check if the shape is a rectangle (or any other type you need to apply the cornerRadius to)
+      if (shape.getClassName() === 'Rect') {
+        shape.cornerRadius(10); // Set the corner radius to 10
+        // shape.fill("transparent"); // Ensure the shape is filled as needed
+        // shape.stroke('black'); // Set border color, if needed
+        // shape.strokeWidth(2); // Set border width, if needed
+        shape.getLayer().batchDraw(); // Redraw the layer for changes to take effect
+      }
+    });
+  };
+
 
   return (
     <>
@@ -717,7 +799,9 @@ const App = () => {
               </label>
               <span>Show parametres</span>
             </div>
-            <button onClick={handleShowParametrs} className='border'>show</button>
+            <button className='border' onClick={deleteShape}>del</button>
+            <button className='border' onClick={copyShape}>copy</button>
+            <button className='border' onClick={filledShape}>[]</button>
           </div>
         )}
 
@@ -757,6 +841,7 @@ const App = () => {
                   height={rectangle.height}
                   width={rectangle.width}
                   draggable={action === ACTIONS.SELECT}
+                  // cornerRadius={10}
                   onClick={onClick}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(rectangle.id, 'position', e)}

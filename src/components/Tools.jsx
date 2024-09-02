@@ -28,51 +28,67 @@ export const Tools = (
   return (
     <div className="absolute left-0 h-full bg-white top-0 border z-10 py-2">
       <div className="flex flex-col gap-3 py-2 px-3 text-black">
-        <button
+        <button title="Select"
           className={action === ACTIONS.SELECT ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
           // onClick={() => setAction(ACTIONS.SELECT)}
           onClick={() => onClick(ACTIONS.SELECT)}
         >
           <Hand />
         </button>
-        <button
+        <button title="Rectangle"
           className={action === ACTIONS.RECTANGLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
           onClick={() => onClick(ACTIONS.RECTANGLE)}
         >
           <Rectangle />
         </button>
-        <button
+        <button title="Line"
           className={action === ACTIONS.LINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
           onClick={() => onClick(ACTIONS.LINE)}
         >
           <LineIcon />
         </button>
-        <button
+        <button title="Circle"
           className={action === ACTIONS.CIRCLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
           onClick={() => onClick(ACTIONS.CIRCLE)}
         >
           <CircleIcon />
         </button>
-        <button
+        <button title="Scribble"
           className={action === ACTIONS.SCRIBBLE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}
           onClick={() => onClick(ACTIONS.SCRIBBLE)}
         >
           <PencilIcon />
         </button>
-        <button onClick={() => onClick(ACTIONS.ARC)} className={action === ACTIONS.ARC ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>Arc</button>
-        <button onClick={() => onClick(ACTIONS.ELLIPSE)} className={action === ACTIONS.ELLIPSE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>elp</button>
-        <button onClick={() => onClick(ACTIONS.SPLINE)} className={action === ACTIONS.SPLINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>spl</button>
-        <button onClick={() => onClick(ACTIONS.TEXT)} className={action === ACTIONS.TEXT ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>text</button>
-        <button onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
+        <button title="Arc" onClick={() => onClick(ACTIONS.ARC)} className={action === ACTIONS.ARC ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>
+          <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 16,16 A 16,16 0 0,1 32,16" stroke="black" fill="transparent" />
+          </svg>
+        </button>
+        <button title="Ellipse" onClick={() => onClick(ACTIONS.ELLIPSE)} className={action === ACTIONS.ELLIPSE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+            <ellipse
+              cx="12"
+              cy="12"
+              rx="10"
+              ry="6"
+              fill="none"
+              stroke="black"
+              stroke-width="1"
+            />
+          </svg>
+        </button>
+        <button title="Spline" onClick={() => onClick(ACTIONS.SPLINE)} className={action === ACTIONS.SPLINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>spl</button>
+        <button title="Text" onClick={() => onClick(ACTIONS.TEXT)} className={action === ACTIONS.TEXT ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>text</button>
+        <button title="Undo" onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
           <RedoIcon />
         </button>
-        <button onClick={() => handleRedo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
+        <button title="Redo" onClick={() => handleRedo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
           <UndoIcon />
         </button>
-        <button onClick={() => handleExport(stageRef)}>
+        <button title="Export" onClick={() => handleExport(stageRef)}>
           <Download />
         </button>
-        <button onClick={() => (setClose(true))}>close</button>
+        <button title="Close" onClick={() => (setClose(true))}>close</button>
       </div>
     </div>
   )

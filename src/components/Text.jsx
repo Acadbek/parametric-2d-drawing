@@ -6,7 +6,7 @@ const TextComponent = ({ shapes }) => {
     <React.Fragment>
       {shapes.map((shape, index) => {
         if (index === 0) {
-          return null; // Agar indeks 0 bo'lsa, hech qanday matn qaytarmaydi
+          return null;
         }
         const isCircle = shape.radius !== undefined; // Check if the shape has a radius pr
         const centerX = shape.x() + (isCircle ? 0 : shape.width() / 2);
