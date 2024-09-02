@@ -1,61 +1,115 @@
-import React, { useState } from 'react';
-import { Stage, Layer, Rect } from 'react-konva';
-import useImage from 'use-image';
+import React, { useState, useRef } from 'react';
+import { Stage, Layer, Rect, Text } from 'react-konva';
 
-const App = () => {
-  const [image] = useImage('/hatch.jpg'); // Image path
-  const [rects, setRects] = useState([]);
-  const [dragStart, setDragStart] = useState(null);
+function App() {
+  const [rectangles, setRectangles] = useState([]);
+  const [newRect, setNewRect] = useState(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [showParams, setShowParams] = useState(false);
+  const stageRef = useRef();
 
   const handleMouseDown = (e) => {
+    setIsDrawing(true);
     const { x, y } = e.target.getStage().getPointerPosition();
-    setDragStart({ x, y });
+    setNewRect({
+      x,
+      y,
+      width: 0,
+      height: 0,
+      id: `rect${rectangles.length + 1}`,
+    });
   };
 
   const handleMouseMove = (e) => {
-    if (dragStart) {
-      const { x, y } = e.target.getStage().getPointerPosition();
-      const newRect = {
-        x: Math.min(dragStart.x, x),
-        y: Math.min(dragStart.y, y),
-        width: Math.abs(dragStart.x - x),
-        height: Math.abs(dragStart.y - y),
+    if (!isDrawing) return;
+    const { x, y } = e.target.getStage().getPointerPosition();
+    setNewRect((prevRect) => {
+      if (!prevRect) return null;
+      return {
+        ...prevRect,
+        width: x - prevRect.x,
+        height: y - prevRect.y,
       };
-      setRects([newRect]);
-    }
+    });
   };
 
   const handleMouseUp = () => {
-    setDragStart(null);
+    setIsDrawing(false);
+    if (newRect) {
+      setRectangles([...rectangles, newRect]);
+      setNewRect(null);
+    }
+  };
+
+  const handleShowParams = () => {
+    setShowParams((prev) => !prev);
   };
 
   return (
-    <Stage
-      width={window.innerWidth}
-      height={window.innerHeight}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-    >
-      <Layer>
-        {rects.map((rect, index) => (
-          <Rect
-            key={index}
-            x={rect.x}
-            y={rect.y}
-            width={rect.width}
-            height={rect.height}
-            fillPatternImage={image}
-           
-            stroke="black"
-            strokeWidth={4}
-            cornerRadius={10}
-            draggable
-          />
-        ))}
-      </Layer>
-    </Stage>
+    <div>
+      <Stage
+        width={window.innerWidth}
+        height={window.innerHeight}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        ref={stageRef}
+      >
+        <Layer>
+          {rectangles.map((rect) => (
+            <React.Fragment key={rect.id}>
+              <Rect
+                x={rect.x}
+                y={rect.y}
+                width={rect.width}
+                height={rect.height}
+                fill="blue"
+                stroke="black"
+                strokeWidth={2}
+              />
+              {showParams && (
+                <>
+                  <Text
+                    x={rect.x + rect.width / 2 - 40}
+                    y={rect.y - 20}
+                    text={`W: ${Math.abs(Math.round(rect.width))}`}
+                    fontSize={16}
+                    fill="black"
+                  />
+                  <Text
+                    x={rect.x + rect.width + 10}
+                    y={rect.y + rect.height / 2 - 10}
+                    text={`H: ${Math.abs(Math.round(rect.height))}`}
+                    fontSize={16}
+                    fill="black"
+                  />
+                  <Text
+                    x={rect.x + rect.width / 2 - 50}
+                    y={rect.y + rect.height + 10}
+                    text={`P: ${Math.round(2 * (Math.abs(rect.width) + Math.abs(rect.height)))}`}
+                    fontSize={16}
+                    fill="black"
+                  />
+                </>
+              )}
+            </React.Fragment>
+          ))}
+          {newRect && (
+            <Rect
+              x={newRect.x}
+              y={newRect.y}
+              width={newRect.width}
+              height={newRect.height}
+              fill="blue"
+              stroke="black"
+              strokeWidth={2}
+            />
+          )}
+        </Layer>
+      </Stage>
+      <button onClick={handleShowParams}>Show Parameters</button>
+    </div>
   );
-};
+}
 
 export default App;

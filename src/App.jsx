@@ -5,6 +5,7 @@ import { ACTIONS } from "./constants";
 import { saveState, drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints, drawArc } from './scripts'
 import { Tools } from './components/Tools';
 import { Html } from 'react-konva-utils';
+import TextComponent from './components/Text';
 // import hatchImg from '/hatch.jpg'
 // import useImage from 'use-image';
 const GUIDELINE_OFFSET = 5;
@@ -79,6 +80,8 @@ const App = () => {
     arrows: [],
     scribbles: [],
   }]);
+  const [showParams, setShowParams] = React.useState(false)
+  const [allShapes, setAllShapes] = React.useState([])
 
   // const [image] = useImage('/hatch.jpg'); // Image path
 
@@ -534,8 +537,6 @@ const App = () => {
   };
 
   const onPointerMove = () => {
-    console.log('pointer move');
-
     if (action === ACTIONS.SELECT || !isPainting.current) return
 
     const stage = stageRef.current;
@@ -616,6 +617,10 @@ const App = () => {
   }
 
   const onClick = (e) => {
+    const shapes = stageRef.current.find(".object")
+    // console.log(shapes);
+    setAllShapes(shapes)
+    
     setTanlanganShape(e.target.attrs)
     if (action !== ACTIONS.SELECT) return;
     setSelectedBorder(e)
@@ -662,6 +667,10 @@ const App = () => {
     }
   };
 
+  const handleShowParametrs = () => {
+    setShowParams((prev) => !prev)
+  }
+
   return (
     <>
       <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
@@ -684,7 +693,7 @@ const App = () => {
         />
         {tanlanganShape && (
           <div className='controlls flex flex-col p-2 gap-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
-            {Object.keys(tanlanganShape).filter((pr) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth').map((property) => (
+            {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth').map((property) => (
               <div className='flex' key={property}>
                 <p>{property}:</p>
                 <input
@@ -699,6 +708,7 @@ const App = () => {
                 />
               </div>
             ))}
+            <button onClick={handleShowParametrs} className='border'>show</button>
           </div>
         )}
 
@@ -713,8 +723,7 @@ const App = () => {
             onPointerUp={onPointerUp}
             onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
             onMouseDown={handleSelectShape}
-
-          // onTouchStart={handleSelectShape}
+            onMouseUp={() => setAction(ACTIONS.SELECT)}
           >
             <Layer ref={layerRef}>
               <Rect
@@ -735,7 +744,6 @@ const App = () => {
                   y={rectangle.points[0].y}
                   // fillPatternImage={image}
                   // fillPatternRepeat="repeat"
-                  cornerRadius={10}
                   strokeWidth={hoveradShapeId === rectangle.id ? 10 : 4}
                   height={rectangle.height}
                   width={rectangle.width}
@@ -743,7 +751,7 @@ const App = () => {
                   onClick={onClick}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(rectangle.id, 'position', e)}
-                  onTap={handleSelectShape}
+                  // onTap={handleSelectShape}
                   name='object'
                   fillEnabled={false} // hatch qoshish un ochirish kerak
                   fill="transparent" // hatch qoshish un ochirish kerak
@@ -751,13 +759,12 @@ const App = () => {
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, rectangle.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, rectangle.id)}
                   onMouseUp={(e) => {
-                    setAction(ACTIONS.SELECT)
+                    console.log('------------', e);
                     setSelectedBorder(e)
                   }
                   }
                 />
               ))}
-
               {circles.map((circle) => (
                 <Circle
                   type="circle"
@@ -777,7 +784,8 @@ const App = () => {
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, circle.id)}
                   strokeWidth={hoveradShapeId === circle.id ? 10 : 4}
                   onMouseUp={(e) => {
-                    setAction(ACTIONS.SELECT)
+                    console.log('------------', e);
+
                     setSelectedBorder(e)
                   }
                   }
@@ -854,7 +862,7 @@ const App = () => {
               {/* Draw control points */}
               {curve.controlPoints.map((point, i) => (
                 <Circle
-                  key={i}
+                  key={point.id}
                   x={point.x}
                   y={point.y}
                   radius={9}
@@ -914,7 +922,7 @@ const App = () => {
               ))}
               {texts.map((text) => (
                 <React.Fragment key={text.id}>
-                  <Text
+                  <Text key={text.id}
                     x={text.x}
                     y={text.y}
                     text={text.text}
@@ -964,6 +972,7 @@ const App = () => {
                 </React.Fragment>
               ))}
               <Transformer ref={transformerRef} />
+              {showParams && <TextComponent shapes={allShapes} />}
             </Layer>
           </Stage>
         </div>
