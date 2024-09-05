@@ -11,7 +11,7 @@ Tasks for that project
 2- there will be a area at left side and the inputs will come from there...(This inputs will be flexable my customer can add new parameters here)...
 3- İnside drawing we  will do able to those :
         -- Circle: Draws a circle by specifying a center point and a radius.
-        Arc: Creates an arc, which is a portion of a circle.
+        --Arc: Creates an arc, which is a portion of a circle.
         -- Rectangle: Draws a rectangle by specifying two corner points.
         -- Ellipse: Draws an ellipse or elliptical arcs.
         -- Spline: Creates smooth curves that pass through or near a set of points.

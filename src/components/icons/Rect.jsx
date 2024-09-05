@@ -7,7 +7,7 @@ export const Rectangle = () => {
       height="20"
       fill="none"
       stroke="black"
-      stroke-width="1"
+      strokeWidth="1"
     />
   </svg>
   )

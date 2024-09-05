@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, Circle, Layer, Image, Line, Rect, Stage, Transformer, Arc, Ellipse } from "react-konva";
+import { Text, Circle, Layer, Group, Line, Rect, Stage, Transformer, Arc, Ellipse } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
 import { saveState, drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints, drawArc } from './scripts'
@@ -82,6 +82,7 @@ const App = () => {
   }]);
   const [showParams, setShowParams] = React.useState(false)
   const [allShapes, setAllShapes] = React.useState([])
+  const [lineIsDragged, setLineIsDragged] = React.useState(false)
 
   // const [image] = useImage('/hatch.jpg'); // Image path
 
@@ -375,8 +376,7 @@ const App = () => {
   };
 
   const onPointerDown = (e) => {
-    console.log('is drawing', isPainting);
-
+    const pos = e.target.getStage().getPointerPosition();
     const stage = stageRef.current;
 
     if (action === ACTIONS.SELECT) return;
@@ -468,33 +468,37 @@ const App = () => {
         setIsDrawing(true)
         break;
       case ACTIONS.ARC:
-        setArcs((arc) => [
-          ...arc,
+        setArcs([
+          ...arcs,
           {
-            name: `arc-${currentShapeId.current}`,
+            name: `arc-${id}`,
             closed: false,
             type: 'arc',
             points: [
               {
-                x,
-                y,
+                x: pos.x,
+                y: pos.y,
                 formulas: {
                   y: {
                     datatype: "IamFormula",
-                    place: y,
-                    KEYID: id
+                    place: pos.y,
+                    KEYID: id,
                   },
                   x: {
                     datatype: "IamFormula",
-                    place: y,
-                    KEYID: id
-                  }
-                }
+                    place: pos.x,
+                    KEYID: id,
+                  },
+                },
               },
             ],
             id,
             height: 20,
             width: 20,
+            innerRadius: 10,
+            outerRadius: 10,
+            angle: 90,
+            rotation: 180,
           },
         ]);
         break;
@@ -536,7 +540,7 @@ const App = () => {
     );
   };
 
-  const onPointerMove = () => {
+  const onPointerMove = (e) => {
     if (action === ACTIONS.SELECT || !isPainting.current) return
 
     const stage = stageRef.current;
@@ -562,7 +566,23 @@ const App = () => {
         );
         break;
       case ACTIONS.ARC:
-        drawArc(arcs, currentShapeId.current, x, y, setArcs)
+        setArcs((prevArcs) => {
+          const updatedArcs = [...prevArcs];
+          const lastArc = updatedArcs[updatedArcs.length - 1];
+          const dx = x - lastArc.points[0].x;
+          const dy = y - lastArc.points[0].y;
+          const radius = Math.sqrt(dx * dx + dy * dy);
+
+          updatedArcs[updatedArcs.length - 1] = {
+            ...lastArc,
+            type: 'arc',
+            outerRadius: Math.max(radius, 0),
+            innerRadius: Math.max(radius - 0, 70),
+            angle: (Math.atan2(dy, dx) * (180 / Math.PI) + 360) % 360,
+          };
+
+          return updatedArcs;
+        });
         break;
       case ACTIONS.ELLIPSE:
         setIsDrawing(false)
@@ -676,8 +696,12 @@ const App = () => {
       return;
     }
     const shapeId = tanlanganShape.id;
+    console.log(shapeId, 'shape id');
+
     const shapeToDelete = stageRef.current.findOne(`#${shapeId}`);
     if (shapeToDelete) {
+      console.log('deleted');
+
       shapeToDelete.destroy();
       stageRef.current.draw();
       setAllShapes(stageRef.current.find(".object"))
@@ -712,6 +736,8 @@ const App = () => {
         height: shapeToCopy.height(),
         fill: 'transparent', // or the same as the original
       });
+
+      // clonedShape.setAttrs({})
 
       // Set additional properties and event handlers
       clonedShape.stroke(hoveradShapeId === clonedShape.id() ? '#00000044' : 'black');
@@ -752,6 +778,31 @@ const App = () => {
       }
     });
   };
+
+  function handleTransform(curveId) {
+    const line = stageRef.current.findOne(`.haligi-line[data-id="${curveId}"]`);
+    const scaleX = line.scaleX();
+    const scaleY = line.scaleY();
+    const rotation = line.rotation();
+    const position = line.position();
+
+    // Update control points based on transformation
+    const updatedControlPoints = curve.controlPoints.map((point) => {
+      const newPoint = {
+        x: (point.x - position.x) * scaleX + position.x,
+        y: (point.y - position.y) * scaleY + position.y
+      };
+
+      return newPoint;
+    });
+
+    // Update the state or redraw control points
+    setCurve((prevCurve) => ({
+      ...prevCurve,
+      controlPoints: updatedControlPoints
+    }));
+  }
+
 
 
   return (
@@ -799,6 +850,8 @@ const App = () => {
               </label>
               <span>Show parametres</span>
             </div>
+            {JSON.stringify(tanlanganShape)}
+
             <button className='border' onClick={deleteShape}>del</button>
             <button className='border' onClick={copyShape}>copy</button>
             <button className='border' onClick={filledShape}>[]</button>
@@ -878,8 +931,6 @@ const App = () => {
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, circle.id)}
                   strokeWidth={hoveradShapeId === circle.id ? 10 : 4}
                   onMouseUp={(e) => {
-                    console.log('------------', e);
-
                     setSelectedBorder(e)
                   }
                   }
@@ -911,61 +962,74 @@ const App = () => {
               ))}
               {arcs.map((arc, i) => (
                 <Arc
-                  type="arc"
-                  key={arc.id}
                   id={arc.id}
+                  key={arc.id}
                   x={arc.points[0].x}
                   y={arc.points[0].y}
-                  strokeWidth={hoveradShapeId === arc.id ? 10 : 4}
-                  height={arc.height}
-                  angle={90}
-                  innerRadius={100}
-                  outerRadius={200}
-                  width={arc.width}
+                  innerRadius={arc.innerRadius}
+                  outerRadius={arc.outerRadius}
+                  angle={arc.angle}
+                  rotation={arc.rotation}
+                  strokeWidth={hoveradShapeId === curve.id ? 0 : 1}
+                  fill="transparent"
                   draggable={action === ACTIONS.SELECT}
                   onClick={onClick}
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(arc.id, 'position', e)}
                   onTap={handleSelectShape}
                   name='object'
-                  fill="transparent"
                   stroke={hoveradShapeId === arc.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, arc.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, arc.id)}
                   onMouseUp={(e) => {
                     setAction(ACTIONS.SELECT)
+                    setSelectedBorder(e)
                   }
                   }
                 />
               ))}
-              <Line
-                className="haligi-line"
-                points={curve.points}
-                stroke="black"
-                strokeWidth={4}
-                lineCap="round"
-                name='object'
-                lineJoin="round"
-                onDragMove={handleDragMove}
-                onDragEnd={handleDragEnd}
-                tension={0}
-                closed={close}
-                fill={null}
-                fillEnabled={false}
-              />
-              {/* Draw control points */}
-              {curve.controlPoints.map((point, i) => (
-                <Circle
-                  key={point.id}
-                  x={point.x}
-                  y={point.y}
-                  radius={9}
-                  name='object'
-                  fill="red"
-                  draggable
-                  onDragMove={handleDragMoveCircle(i)}
+              <Group
+                draggable={action === ACTIONS.SELECT} // Group draggable if in SELECT mode
+                onDragEnd={(e) => handleDragEnd(curve.id, 'position', e)} // Handle drag end for the entire group
+                onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, curve.id)}
+                onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, curve.id)}
+                onTransformEnd={() => handleTransform(curve.id)} // Call handleTransform on transformation end
+              >
+                {/* Line shape */}
+                <Line
+                  className="haligi-line"
+                  points={curve.points}
+                  lineCap="round"
+                  name="object"
+                  lineJoin="round"
+                  tension={0.2}
+                  closed={close}
+                  fill={null}
+                  stroke={hoveradShapeId === curve.id ? '#00000044' : 'black'}
+                  strokeWidth={hoveradShapeId === curve.id ? 10 : 4}
+                  fillEnabled={false}
+                  onDragMove={handleDragMove}
+                  onMouseUp={(e) => setSelectedBorder(e)}
+                  onTransformStart={() => console.log('Transform start')} // Example: add a console log
+                  onTransformEnd={() => handleTransform(curve.id)} // Handle transformation end
                 />
-              ))}
+
+                {/* Draw control points */}
+                {curve.controlPoints.map((point, i) => (
+                  <Circle
+                    key={point.id}
+                    x={point.x}
+                    y={point.y}
+                    radius={9}
+                    name="object"
+                    fill="red"
+                    draggable
+                    onDragStart={() => console.log('Drag start')}
+                    onDragMove={handleDragMoveCircle(i)}
+                  />
+                ))}
+              </Group>
+
               {ellipses.map((ellipse) => (
                 <Ellipse
                   key={ellipse.id}
@@ -1076,7 +1140,7 @@ const App = () => {
             isDrawing && !close && <button onClick={() => setClose(true)} className='border'>close</button>
           }
         </div>
-      </div>
+      </div >
     </>
   );
 };

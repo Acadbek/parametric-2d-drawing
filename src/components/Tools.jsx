@@ -59,9 +59,9 @@ export const Tools = (
         >
           <PencilIcon />
         </button>
-        <button title="Arc" onClick={() => onClick(ACTIONS.ARC)} className={action === ACTIONS.ARC ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>
-          <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 16,16 A 16,16 0 0,1 32,16" stroke="black" fill="transparent" />
+        <button className="w-24" title="Arc" onClick={() => onClick(ACTIONS.ARC)} className={action === ACTIONS.ARC ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>
+          <svg className="mt-1" width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 50,50 m -40,0 a 40,40 0 1,1 80,0" stroke="black" stroke-width="4" fill="none" />
           </svg>
         </button>
         <button title="Ellipse" onClick={() => onClick(ACTIONS.ELLIPSE)} className={action === ACTIONS.ELLIPSE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>
@@ -73,7 +73,7 @@ export const Tools = (
               ry="6"
               fill="none"
               stroke="black"
-              stroke-width="1"
+              strokeWidth="1"
             />
           </svg>
         </button>

@@ -7,7 +7,7 @@ export const LineIcon = () => {
         x2="20"
         y2="20"
         stroke="black"
-        stroke-width="1"
+        strokeWidth="1"
       />
     </svg>
 
