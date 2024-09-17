@@ -38,7 +38,7 @@ const DrawLine = () => {
   };
 
   // Handles clicks on the stage, adds new points or adjusts existing ones
-  const handleStageClick = (e, isDrawing, curve, setCurve) => {
+  const handleStageClick = (e) => {
     if (!isDrawing) return;
     const { x, y } = e.target.getStage().getPointerPosition();
 
@@ -86,6 +86,7 @@ const DrawLine = () => {
     }
   };
 
+
   // Handles pointer down event to start drawing a line
   const onPointerDown = (e) => {
     const pos = e.target.getStage().getPointerPosition();
@@ -112,17 +113,13 @@ const DrawLine = () => {
   };
 
   // Updates the points of the line being drawn
-  const updateLinePoints = (lines, currentShapeId, x, y) => {
-    return lines.map((line) => {
-      if (line.id === currentShapeId) {
-        return {
-          ...line,
-          points: [line.points[0], line.points[1], x, y],
-        };
-      }
-      return line;
-    });
+  const updateLinePoints = (lines, id, x, y) => {
+    return lines.map(line => line.id === id
+      ? { ...line, points: [line.points[0], line.points[1], x, y] }
+      : line
+    );
   };
+
 
   // Handles pointer move event to update the line's points
   const onPointerMove = (e) => {
@@ -157,55 +154,48 @@ const DrawLine = () => {
   };
 
   // Handles transformations on a line, updating control points accordingly
-  function handleTransform(curveId) {
-    const line = stageRef.current.findOne(`.haligi-line[data-id="${curveId}"]`);
+  const handleDragMoveCircle = (index) => (e) => {
+    // Get the circle's absolute position
+    const circleAbsPos = e.target.getAbsolutePosition();
 
-    // Get the absolute transformation matrix and invert it
-    const groupTransform = line.getParent().getAbsoluteTransform().copy().invert();
+    // Get a copy of the line's absolute transform (important to avoid modifying the original)
+    const lineTransform = lineRef.current.getAbsoluteTransform().copy();
 
-    const scaleX = line.scaleX();
-    const scaleY = line.scaleY();
-    const rotation = line.rotation();
-    const position = line.position();
+    // Invert the line transform to map the point back to the line's local space
+    const newLinePoint = lineTransform.invert().point(circleAbsPos);
 
-    // Update control points based on transformation with inverse transform
-    const updatedControlPoints = curve.controlPoints.map((point) => {
-      const absolutePoint = { x: point.x, y: point.y };
-      const transformedPoint = groupTransform.point(absolutePoint);
+    // Update the corresponding point in the line's points array
+    const updatedPoints = [...curve.points];
+    updatedPoints[index * 2] = newLinePoint.x;
+    updatedPoints[index * 2 + 1] = newLinePoint.y;
 
-      const newPoint = {
-        x: (transformedPoint.x - position.x) * scaleX + position.x,
-        y: (transformedPoint.y - position.y) * scaleY + position.y
-      };
-
-      return newPoint;
+    setCurve({
+      ...curve,
+      points: updatedPoints,
     });
+  };
 
-    // Update the state or redraw control points
-    setCurve((prevCurve) => ({
-      ...prevCurve,
-      controlPoints: updatedControlPoints
-    }));
-  }
 
   // Repositions control point circles to match the line's position
   const positionCircles = () => {
-    const points = lineRef.current.points();
-    const circles = layerRef.current.find(".circle"); // Select all circles using class name
-    for (let i = 0; i < points.length; i += 2) {
-      const point = { x: points[i], y: points[i + 1] };
-      const newPoint = lineRef.current.getAbsoluteTransform().point(point);
-      circles[i / 2].absolutePosition({
-        x: newPoint.x,
-        y: newPoint.y,
-      });
+    const line = lineRef.current;
+    const points = line.points();
+    const circles = layerRef.current.find(".circle");
+
+    for (let i = 0; i < line.points().length; i += 2) {
+      const point = { x: line.points()[i], y: line.points()[i + 1] };
+      const transformedPoint = line.getAbsoluteTransform().point(point);
+
+      circles[i / 2].absolutePosition(transformedPoint);
     }
   };
+
 
   // Triggers the update of control point positions after a transformation
   const handleTransformNew = () => {
     positionCircles();
   };
+
 
   // Handles dragging of shapes, updating the position
   const handleDragMove = (e) => {
@@ -227,21 +217,6 @@ const DrawLine = () => {
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
   };
-
-  // Handles dragging of control points for the curve
-  const handleDragMoveCircle = (index) => (e) => {
-    const newPoints = [...curve.controlPoints];
-    newPoints[index] = { x: e.target.x(), y: e.target.y() };
-
-    const updatedPoints = newPoints.flatMap((p) => [p.x, p.y]);
-
-    setCurve({
-      ...curve,
-      points: updatedPoints,
-      controlPoints: newPoints,
-    });
-  };
-
   return (
     <Stage
       ref={stageRef}
@@ -254,7 +229,7 @@ const DrawLine = () => {
     >
       <Layer ref={layerRef}>
         <Group draggable
-          onTransformEnd={() => handleTransform(curve.id)}
+        // onTransformEnd={() => handleTransform(curve.id)}
         >
           <Line
             ref={lineRef}

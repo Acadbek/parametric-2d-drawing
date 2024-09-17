@@ -2,14 +2,11 @@ import React from 'react';
 import { Text, Circle, Layer, Group, Line, Rect, Stage, Transformer, Arc, Ellipse } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
-import { saveState, drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints, drawArc } from './scripts'
+import { drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints, drawArc } from './scripts'
 import { Tools } from './components/Tools';
 import { Html } from 'react-konva-utils';
 import TextComponent from './components/Text';
-// import hatchImg from '/hatch.jpg'
-// import useImage from 'use-image';
 const GUIDELINE_OFFSET = 5;
-
 
 const App = () => {
   const stageRef = React.useRef();
@@ -17,53 +14,27 @@ const App = () => {
   const layerRef = React.useRef(null);
   const transformerRef = React.useRef();
   const currentShapeId = React.useRef();
+  const inputRef = React.useRef(null); // HTML input elementiga referens
+  const lineRef = React.useRef(null)
+  const lineGroupRef = React.useRef(null)
 
   // text
   const [texts, setTexts] = React.useState([]); // Sahifadagi matnlar ro'yxati
   const [isAddingText, setIsAddingText] = React.useState(false); // Matn qo'shish rejimi
   const [selectedTextId, setSelectedTextId] = React.useState(null); // Tanlangan matn IDsi
   const [newText, setNewText] = React.useState(""); // Foydalanuvchi kiritadigan yangi matn
+  const [currentLine, setCurrentLine] = React.useState({ points: [], controlPoints: [] }); // Track the current line
   const [editingTextId, setEditingTextId] = React.useState(null); // Tahrirlanayotgan matn IDsi
-  const inputRef = React.useRef(null); // HTML input elementiga referens
-
+  const [showFinishButton, setShowFinishButton] = React.useState(false)
   // text end
 
-  const [, setLines] = React.useState([]);
+  const [lines, setLines] = React.useState([]);
   const [arrows, setArrows] = React.useState([]);
   const [close, setClose] = React.useState(false)
   const [circles, setCircles] = React.useState([]);
   const [scribbles, setScribbles] = React.useState([]);
-  const [ellipses, setEllipses] = React.useState([{
-    x: 150,
-    y: 100,
-    radiusX: 0,
-    radiusY: 0,
-  }]);
-  const [rectangles, setRectangles] = React.useState(
-    [
-      {
-        name: 'asd',
-        points: [
-          {
-            x: 100,
-            y: 100,
-            formulas: {
-              y: {
-                "datatype": "IamFormula",
-                "place": "y",
-                "KEYID": "1afnw5r7n5MQRHSGQG1R"
-              },
-              x: {
-                "datatype": "IamFormula",
-                "place": "y",
-                "KEYID": "1afnw5r7n5MQRHSGQG1R"
-              }
-            }
-          },
-        ]
-      }
-    ]
-  );
+  const [ellipses, setEllipses] = React.useState([]);
+  const [rectangles, setRectangles] = React.useState([]);
   const [tanlanganShape, setTanlanganShape] = React.useState(null)
   const [arcs, setArcs] = React.useState([]);
   const [historyStep, setHistoryStep] = React.useState(0);
@@ -73,6 +44,7 @@ const App = () => {
   const [selectedShapes, setSelectedShapes] = React.useState([]);
   const [hoveradShapeId, setHoveradShapeId] = React.useState(null);
   const [curve, setCurve] = React.useState({ points: [], controlPoints: [] });
+  const [transformedPoints, setTransformedPoints] = React.useState(curve.points);
   const [stageSize, setStageSize] = React.useState({ width: window.innerWidth, height: window.innerHeight });
   const [history, setHistory] = React.useState([{
     rectangles: [],
@@ -82,9 +54,59 @@ const App = () => {
   }]);
   const [showParams, setShowParams] = React.useState(false)
   const [allShapes, setAllShapes] = React.useState([])
-  const [lineIsDragged, setLineIsDragged] = React.useState(false)
+  const [openRightSideContent, setOpenRightSideContent] = React.useState(false)
+  const saveState = () => {
+    console.log('saved');
 
-  // const [image] = useImage('/hatch.jpg'); // Image path
+    setHistory((prevHistory) => {
+      const newHistory = prevHistory.slice(0, historyStep + 1);
+      newHistory.push({ rectangles, circles, arrows, scribbles });
+      return newHistory;
+    });
+    setHistoryStep((prevStep) => prevStep + 1);
+  };
+
+  const handleUndo = () => {
+    console.log('hello');
+
+    if (historyStep === 0) return;
+    setHistoryStep((prevStep) => prevStep - 1);
+    const previousState = history[historyStep - 1];
+    setRectangles(previousState.rectangles);
+    setCircles(previousState.circles);
+    setArrows(previousState.arrows);
+    setScribbles(previousState.scribbles);
+  };
+
+  const handleRedo = () => {
+    if (historyStep >= history.length - 1) return;
+    setHistoryStep((prevStep) => prevStep + 1);
+    const nextState = history[historyStep + 1];
+    setRectangles(nextState.rectangles);
+    setCircles(nextState.circles);
+    setArrows(nextState.arrows);
+    setScribbles(nextState.scribbles);
+  };
+
+  React.useEffect(() => {
+    if (transformerRef.current) {
+      transformerRef.current.nodes([lineRef.current]);
+      transformerRef.current.getLayer().batchDraw();
+    }
+  }, []);
+
+  const updateCircles = () => {
+    const transform = lineRef.current.getAbsoluteTransform();
+    const updatedPoints = curve.controlPoints.map((point) => {
+      const transformedPoint = transform.point(point);
+      return { x: transformedPoint.x, y: transformedPoint.y };
+    });
+    setTransformedPoints(updatedPoints);
+  };
+
+  // const handleTransformNew = () => {
+  //   updateCircles();
+  // };
 
   const handleTextClick = (e) => {
     if (isAddingText) {
@@ -328,7 +350,7 @@ const App = () => {
   // end of snap -------------------------------
 
   const handleDragMove = (e) => {
-    console.log('drag move');
+    handleTransformNew()
     const { x, y, width, height } = e.target.attrs;
     setTanlanganShape((prev) => ({
       ...prev,
@@ -466,6 +488,10 @@ const App = () => {
         break;
       case ACTIONS.LINE:
         setIsDrawing(true)
+        setCurrentLine({
+          points: [x, y],
+          controlPoints: [{ x, y }],
+        });
         break;
       case ACTIONS.ARC:
         setArcs([
@@ -507,14 +533,30 @@ const App = () => {
         setEllipses((ellipses) => [
           ...ellipses,
           {
+            name: `polygon-${id}`,
+            closed: false,
+            type: 'ellipse',
+            points: [
+              {
+                x,
+                y,
+                formulas: {
+                  y: {
+                    datatype: "IamFormula",
+                    place: y,
+                    KEYID: id
+                  },
+                  x: {
+                    datatype: "IamFormula",
+                    place: y,
+                    KEYID: id
+                  }
+                }
+              },
+            ],
             id,
-            x,
-            y,
             radiusX: 0,
             radiusY: 0,
-            fill: 'yellow',
-            stroke: 'black',
-            strokeWidth: 2,
           },
         ]);
         break
@@ -529,15 +571,7 @@ const App = () => {
           },
         ]);
     }
-    saveState(
-      rectangles,
-      circles,
-      arrows,
-      scribbles,
-      setHistory,
-      setHistoryStep,
-      historyStep
-    );
+    saveState();
   };
 
   const onPointerMove = (e) => {
@@ -562,8 +596,13 @@ const App = () => {
         break;
       case ACTIONS.LINE:
         setLines((lines) =>
-          updateLinePoints(lines, currentShapeId.current, x, y)
+          updateLinePoints(lines, currentShapeId.current, x, y),
         );
+        setCurrentLine((prevCurve) => ({
+          points: [...prevCurve.points, x, y],
+          controlPoints: [...prevCurve.controlPoints, { x, y }],
+        }));
+        setAction(ACTIONS.LINE)
         break;
       case ACTIONS.ARC:
         setArcs((prevArcs) => {
@@ -591,8 +630,8 @@ const App = () => {
             ellipse.id === currentShapeId.current
               ? {
                 ...ellipse,
-                radiusX: Math.abs(ellipse.x - x),
-                radiusY: Math.abs(ellipse.y - y),
+                radiusX: Math.abs(ellipse.points[0].x - x),
+                radiusY: Math.abs(ellipse.points[0].y - y),
               }
               : ellipse
           )
@@ -614,21 +653,31 @@ const App = () => {
   };
 
   const onPointerUp = () => {
+    setAction(ACTIONS.SELECT)
     isPainting.current = false;
   };
 
   const handleDragMoveCircle = (index) => (e) => {
-    const newPoints = [...curve.controlPoints];
-    newPoints[index] = { x: e.target.x(), y: e.target.y() };
+    // Get the circle's absolute position
+    const circleAbsPos = e.target.getAbsolutePosition();
 
-    const updatedPoints = newPoints.flatMap(p => [p.x, p.y]);
+    // Get a copy of the line's absolute transform (important to avoid modifying the original)
+    const lineTransform = lineRef.current.getAbsoluteTransform().copy();
+
+    // Invert the line transform to map the point back to the line's local space
+    const newLinePoint = lineTransform.invert().point(circleAbsPos);
+
+    // Update the corresponding point in the line's points array
+    const updatedPoints = [...curve.points];
+    updatedPoints[index * 2] = newLinePoint.x;
+    updatedPoints[index * 2 + 1] = newLinePoint.y;
 
     setCurve({
       ...curve,
       points: updatedPoints,
-      controlPoints: newPoints
     });
   };
+
 
   // click qilganda select bolganiligini bildirib turuvchi border qoshadi
   const setSelectedBorder = (e) => {
@@ -711,7 +760,6 @@ const App = () => {
     }
   };
 
-
   const copyShape = () => {
     if (!tanlanganShape || !tanlanganShape.id) {
       alert('Select a shape to copy');
@@ -781,16 +829,26 @@ const App = () => {
 
   function handleTransform(curveId) {
     const line = stageRef.current.findOne(`.haligi-line[data-id="${curveId}"]`);
+
+    // Get the absolute transformation matrix and invert it
+    const groupTransform = line.getParent().getAbsoluteTransform().copy().invert();
+
     const scaleX = line.scaleX();
     const scaleY = line.scaleY();
     const rotation = line.rotation();
     const position = line.position();
 
-    // Update control points based on transformation
+    // Update control points based on transformation with inverse transform
     const updatedControlPoints = curve.controlPoints.map((point) => {
+      // Create a vector for the current point
+      const absolutePoint = { x: point.x, y: point.y };
+
+      // Apply inverse transformation to map it back to local space
+      const transformedPoint = groupTransform.point(absolutePoint);
+
       const newPoint = {
-        x: (point.x - position.x) * scaleX + position.x,
-        y: (point.y - position.y) * scaleY + position.y
+        x: (transformedPoint.x - position.x) * scaleX + position.x,
+        y: (transformedPoint.y - position.y) * scaleY + position.y
       };
 
       return newPoint;
@@ -803,7 +861,22 @@ const App = () => {
     }));
   }
 
+  const positionCircles = () => {
+    const line = lineRef.current;
+    const points = line.points();
+    const circles = layerRef.current.find(".circle");
 
+    for (let i = 0; i < line.points().length; i += 2) {
+      const point = { x: line.points()[i], y: line.points()[i + 1] };
+      const transformedPoint = line.getAbsoluteTransform().point(point);
+
+      circles[i / 2].absolutePosition(transformedPoint);
+    }
+  };
+
+  const handleTransformNew = () => {
+    positionCircles();
+  };
 
   return (
     <>
@@ -827,7 +900,7 @@ const App = () => {
         />
         {tanlanganShape && (
           <div className='controlls flex flex-col p-2 gap-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
-            {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth').map((property) => (
+            {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth' || pr === 'radiusX' || pr === 'radiusY').map((property) => (
               <div className='flex' key={property}>
                 <p>{property}:</p>
                 <input
@@ -850,11 +923,10 @@ const App = () => {
               </label>
               <span>Show parametres</span>
             </div>
-            {JSON.stringify(tanlanganShape)}
-
             <button className='border' onClick={deleteShape}>del</button>
             <button className='border' onClick={copyShape}>copy</button>
             <button className='border' onClick={filledShape}>[]</button>
+            <button className='border'>Draw New Line</button>
           </div>
         )}
 
@@ -869,9 +941,11 @@ const App = () => {
             onPointerUp={onPointerUp}
             onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
             onMouseDown={handleSelectShape}
-            onMouseUp={() => setAction(ACTIONS.SELECT)}
+            onMouseUp={onPointerUp}
           >
             <Layer ref={layerRef}>
+              <Text zIndex={100} text="undo" x={200} onClick={handleUndo} />
+              <Text zIndex={100} text="redo" x={400} onClick={handleRedo} />
               <Rect
                 x={0}
                 y={0}
@@ -941,6 +1015,7 @@ const App = () => {
                   key={scribble.id}
                   id={scribble.id}
                   lineCap="round"
+                  onClick={onClick}
                   lineJoin="round"
                   points={scribble.points}
                   fill={scribble.fillColor}
@@ -962,6 +1037,7 @@ const App = () => {
               ))}
               {arcs.map((arc, i) => (
                 <Arc
+                  type="arc"
                   id={arc.id}
                   key={arc.id}
                   x={arc.points[0].x}
@@ -970,7 +1046,7 @@ const App = () => {
                   outerRadius={arc.outerRadius}
                   angle={arc.angle}
                   rotation={arc.rotation}
-                  strokeWidth={hoveradShapeId === curve.id ? 0 : 1}
+                  strokeWidth={hoveradShapeId === arc.id ? 0 : 1}
                   fill="transparent"
                   draggable={action === ACTIONS.SELECT}
                   onClick={onClick}
@@ -988,54 +1064,44 @@ const App = () => {
                   }
                 />
               ))}
-              <Group
-                draggable={action === ACTIONS.SELECT} // Group draggable if in SELECT mode
-                onDragEnd={(e) => handleDragEnd(curve.id, 'position', e)} // Handle drag end for the entire group
-                onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, curve.id)}
-                onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, curve.id)}
-                onTransformEnd={() => handleTransform(curve.id)} // Call handleTransform on transformation end
-              >
-                {/* Line shape */}
+              <Group draggable>
                 <Line
+                  ref={lineRef}
                   className="haligi-line"
                   points={curve.points}
                   lineCap="round"
                   name="object"
                   lineJoin="round"
-                  tension={0.2}
-                  closed={close}
+                  tension={0}
+                  closed={false}
                   fill={null}
-                  stroke={hoveradShapeId === curve.id ? '#00000044' : 'black'}
-                  strokeWidth={hoveradShapeId === curve.id ? 10 : 4}
+                  stroke={"black"}
+                  strokeWidth={4}
                   fillEnabled={false}
                   onDragMove={handleDragMove}
+                  onTransform={handleTransformNew}
                   onMouseUp={(e) => setSelectedBorder(e)}
-                  onTransformStart={() => console.log('Transform start')} // Example: add a console log
-                  onTransformEnd={() => handleTransform(curve.id)} // Handle transformation end
                 />
-
-                {/* Draw control points */}
                 {curve.controlPoints.map((point, i) => (
                   <Circle
-                    key={point.id}
+                    key={i}
                     x={point.x}
                     y={point.y}
                     radius={9}
-                    name="object"
+                    name="circle"
                     fill="red"
                     draggable
-                    onDragStart={() => console.log('Drag start')}
                     onDragMove={handleDragMoveCircle(i)}
                   />
                 ))}
               </Group>
-
               {ellipses.map((ellipse) => (
                 <Ellipse
+                  type="ellipse"
                   key={ellipse.id}
                   id={ellipse.id}
-                  x={ellipse.x}
-                  y={ellipse.y}
+                  x={ellipse.points[0].x}
+                  y={ellipse.points[0].y}
                   radiusX={ellipse.radiusX}
                   radiusY={ellipse.radiusY}
                   fillEnabled={false}
@@ -1043,37 +1109,14 @@ const App = () => {
                   draggable
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(ellipse.id, null, e)}
-                  onClick={handleSelectShape}
+                  onClick={onClick}
                   fill="transparent"
                   stroke={hoveradShapeId === ellipse.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, ellipse.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, ellipse.id)}
                   onMouseUp={(e) => {
                     setAction(ACTIONS.SELECT)
-                  }
-                  }
-                />
-              ))}
-              {splines.map((spline) => (
-                <Line
-                  key={spline.id}
-                  points={spline.points}
-                  lineCap="round"
-                  lineJoin="round"
-                  tension={0.5}  // Controls the smoothness of the curve
-                  closed={false}
-                  fillEnabled={false}
-                  strokeWidth={hoveradShapeId === spline.id ? 10 : 4}
-                  draggable
-                  onDragMove={handleDragMove}
-                  onDragEnd={(e) => handleDragEnd(spline.id, null, e)}
-                  onClick={handleSelectShape}
-                  fill="transparent"
-                  stroke={hoveradShapeId === spline.id ? '#00000044' : 'black'}
-                  onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, spline.id)}
-                  onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, spline.id)}
-                  onMouseUp={(e) => {
-                    setAction(ACTIONS.SELECT)
+                    setSelectedBorder(e)
                   }
                   }
                 />
@@ -1129,7 +1172,9 @@ const App = () => {
                   )}
                 </React.Fragment>
               ))}
-              <Transformer ref={transformerRef} />
+              <Transformer
+                // shouldOverdrawWholeArea={true} 
+                ref={transformerRef} />
               {showParams && <TextComponent shapes={allShapes} />}
             </Layer>
           </Stage>
