@@ -28,10 +28,7 @@ Tasks for that project
 
 4- at last we will be able to connect our left side inputs to our cnvas drawings and whenever I change the parameters whole canvas will change as ı wanted as parameters...
 
-
-
 the function will start like that: 
-
 
 const setDrawPolygons = (CONTENT) => {
   const {

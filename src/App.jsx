@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, Circle, Layer, Group, Line, Rect, Stage, Transformer, Arc, Ellipse } from "react-konva";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
-import { drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, handleStageClick, updateLinePoints, updateScribblePoints, drawArc } from './scripts'
+import { drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, updateLinePoints, updateScribblePoints, drawArc } from './scripts'
 import { Tools } from './components/Tools';
 import { Html } from 'react-konva-utils';
 import TextComponent from './components/Text';
@@ -55,6 +55,8 @@ const App = () => {
   const [showParams, setShowParams] = React.useState(false)
   const [allShapes, setAllShapes] = React.useState([])
   const [openRightSideContent, setOpenRightSideContent] = React.useState(false)
+  const [showControlPoints, setShowControlPoints] = React.useState(true)
+
   const saveState = () => {
     console.log('saved');
 
@@ -86,6 +88,82 @@ const App = () => {
     setCircles(nextState.circles);
     setArrows(nextState.arrows);
     setScribbles(nextState.scribbles);
+  };
+
+  const distanceToSegment = (x1, y1, x2, y2, x, y) => {
+    const length2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+    if (length2 === 0) return Math.hypot(x - x1, y - y1);
+    const t = Math.max(
+      0,
+      Math.min(1, ((x - x1) * (x2 - x1) + (y - y1) * (y2 - y1)) / length2)
+    );
+    const projX = x1 + t * (x2 - x1);
+    const projY = y1 + t * (y2 - y1);
+    return Math.hypot(x - projX, y - projY);
+  };
+
+  const addControlPoint = (setCurve, x, y) => {
+    setCurve((prev) => {
+      const newPoints = [...prev.controlPoints, { x, y }];
+      const updatedPoints = newPoints.flatMap((p) => [p.x, p.y]);
+      return { ...prev, points: updatedPoints, controlPoints: newPoints };
+    });
+  };
+
+  const handleStageClick = (e) => {
+    if (!isDrawing) return;
+    const { x, y } = e.target.getStage().getPointerPosition();
+
+    // Get the line object (assuming you have a reference to it)
+    const line = lineRef.current;
+
+    // Invert the line's transform to convert the absolute click position
+    // to a position relative to the line's origin
+    const relativeClickPos = line.getAbsoluteTransform().copy().invert().point({ x, y });
+
+    if (curve.points.length > 0) {
+      const tolerance = 10;
+      let minDist = Infinity;
+      let segmentIndex = -1;
+      let newPoint = null;
+
+      for (let i = 0; i < curve.points.length - 2; i += 2) {
+        const x1 = curve.points[i];
+        const y1 = curve.points[i + 1];
+        const x2 = curve.points[i + 2];
+        const y2 = curve.points[i + 3];
+
+        const dist = distanceToSegment(x1, y1, x2, y2, relativeClickPos.x, relativeClickPos.y);
+        if (dist < tolerance && dist < minDist) {
+          minDist = dist;
+          segmentIndex = i;
+          newPoint = relativeClickPos; // Use the relative position here
+        }
+      }
+
+      if (segmentIndex >= 0 && newPoint) {
+        const newPoints = [
+          ...curve.points.slice(0, segmentIndex + 2),
+          newPoint.x,
+          newPoint.y,
+          ...curve.points.slice(segmentIndex + 2),
+        ];
+        const newControlPoints = [
+          ...curve.controlPoints.slice(0, segmentIndex / 2 + 1),
+          newPoint,
+          ...curve.controlPoints.slice(segmentIndex / 2 + 1),
+        ];
+
+        setCurve({
+          points: newPoints,
+          controlPoints: newControlPoints,
+        });
+      } else {
+        addControlPoint(setCurve, relativeClickPos.x, relativeClickPos.y);
+      }
+    } else {
+      addControlPoint(setCurve, relativeClickPos.x, relativeClickPos.y);
+    }
   };
 
   React.useEffect(() => {
@@ -827,43 +905,8 @@ const App = () => {
     });
   };
 
-  function handleTransform(curveId) {
-    const line = stageRef.current.findOne(`.haligi-line[data-id="${curveId}"]`);
-
-    // Get the absolute transformation matrix and invert it
-    const groupTransform = line.getParent().getAbsoluteTransform().copy().invert();
-
-    const scaleX = line.scaleX();
-    const scaleY = line.scaleY();
-    const rotation = line.rotation();
-    const position = line.position();
-
-    // Update control points based on transformation with inverse transform
-    const updatedControlPoints = curve.controlPoints.map((point) => {
-      // Create a vector for the current point
-      const absolutePoint = { x: point.x, y: point.y };
-
-      // Apply inverse transformation to map it back to local space
-      const transformedPoint = groupTransform.point(absolutePoint);
-
-      const newPoint = {
-        x: (transformedPoint.x - position.x) * scaleX + position.x,
-        y: (transformedPoint.y - position.y) * scaleY + position.y
-      };
-
-      return newPoint;
-    });
-
-    // Update the state or redraw control points
-    setCurve((prevCurve) => ({
-      ...prevCurve,
-      controlPoints: updatedControlPoints
-    }));
-  }
-
   const positionCircles = () => {
     const line = lineRef.current;
-    const points = line.points();
     const circles = layerRef.current.find(".circle");
 
     for (let i = 0; i < line.points().length; i += 2) {
@@ -927,6 +970,9 @@ const App = () => {
             <button className='border' onClick={copyShape}>copy</button>
             <button className='border' onClick={filledShape}>[]</button>
             <button className='border'>Draw New Line</button>
+            <button className='border' onClick={() => setShowControlPoints(!showControlPoints)}>
+              Show/Hide Control Points
+            </button>
           </div>
         )}
 
@@ -939,9 +985,9 @@ const App = () => {
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
             onMouseDown={handleSelectShape}
             onMouseUp={onPointerUp}
+            onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
           >
             <Layer ref={layerRef}>
               <Text zIndex={100} text="undo" x={200} onClick={handleUndo} />
@@ -1073,27 +1119,32 @@ const App = () => {
                   name="object"
                   lineJoin="round"
                   tension={0}
-                  closed={false}
+                  closed={close}
                   fill={null}
-                  stroke={"black"}
-                  strokeWidth={4}
+                  stroke={hoveradShapeId === curve.id ? '#00000044' : 'black'}
+                  strokeWidth={hoveradShapeId === curve.id ? 10 : 4}
+                  onClick={onClick}
                   fillEnabled={false}
                   onDragMove={handleDragMove}
                   onTransform={handleTransformNew}
-                  onMouseUp={(e) => setSelectedBorder(e)}
+                  onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, curve.id)}
+                  onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, curve.id)}
+                  onMouseUp={(e) => setSelectedBorder(e)
+                  }
                 />
-                {curve.controlPoints.map((point, i) => (
-                  <Circle
-                    key={i}
-                    x={point.x}
-                    y={point.y}
-                    radius={9}
-                    name="circle"
-                    fill="red"
-                    draggable
-                    onDragMove={handleDragMoveCircle(i)}
-                  />
-                ))}
+                {showControlPoints &&
+                  curve.controlPoints.map((point, i) => (
+                    <Circle
+                      key={i}
+                      x={point.x}
+                      y={point.y}
+                      radius={9}
+                      name="circle"
+                      fill="red"
+                      draggable
+                      onDragMove={handleDragMoveCircle(i)}
+                    />
+                  ))}
               </Group>
               {ellipses.map((ellipse) => (
                 <Ellipse
@@ -1173,6 +1224,8 @@ const App = () => {
                 </React.Fragment>
               ))}
               <Transformer
+                anchorCornerRadius={3}
+                padding={20}
                 // shouldOverdrawWholeArea={true} 
                 ref={transformerRef} />
               {showParams && <TextComponent shapes={allShapes} />}
