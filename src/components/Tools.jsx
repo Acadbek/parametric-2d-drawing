@@ -59,7 +59,7 @@ export const Tools = (
         >
           <PencilIcon />
         </button>
-        <button className="w-24" title="Arc" onClick={() => onClick(ACTIONS.ARC)} className={action === ACTIONS.ARC ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>
+        <button title="Arc" onClick={() => onClick(ACTIONS.ARC)} className={'w-24' + action === ACTIONS.ARC ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>
           <svg className="mt-1" width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
             <path d="M 50,50 m -40,0 a 40,40 0 1,1 80,0" stroke="black" strokeWidth="4" fill="none" />
           </svg>
@@ -77,14 +77,14 @@ export const Tools = (
             />
           </svg>
         </button>
-        <button title="Spline" onClick={() => onClick(ACTIONS.SPLINE)} className={action === ACTIONS.SPLINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>spl</button>
+        {/* <button title="Spline" onClick={() => onClick(ACTIONS.SPLINE)} className={action === ACTIONS.SPLINE ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>spl</button> */}
         <button title="Text" onClick={() => onClick(ACTIONS.TEXT)} className={action === ACTIONS.TEXT ? "bg-violet-300 p-1 rounded" : "p-1 hover:bg-violet-100 rounded"}>text</button>
-        <button title="Undo" onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
+        {/* <button title="Undo" onClick={() => handleUndo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
           <RedoIcon />
         </button>
         <button title="Redo" onClick={() => handleRedo(historyStep, history, setRectangles, setCircles, setArrows, setScribbles, setHistoryStep)}>
           <UndoIcon />
-        </button>
+        </button> */}
         <button title="Export" onClick={() => handleExport(stageRef)}>
           <Download />
         </button>
