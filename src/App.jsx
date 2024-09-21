@@ -58,6 +58,8 @@ const App = () => {
   const [allShapes, setAllShapes] = React.useState([])
   const [openRightSideContent, setOpenRightSideContent] = React.useState(false)
   const [showControlPoints, setShowControlPoints] = React.useState(true)
+  const [isFilled, setIsFilled] = React.useState(false)
+  const [bgColor, setBgColor] = React.useState('transparent')
 
   const saveState = () => {
     console.log('saved');
@@ -854,6 +856,8 @@ const App = () => {
     const shapeToCopy = stageRef.current.findOne(`#${shapeId}`);
     const layer = layerRef.current;
 
+    // setSelectedBorder(shapeId)
+
     if (shapeToCopy) {
       console.log('copied', shapeToCopy);
 
@@ -892,6 +896,7 @@ const App = () => {
       clonedShape.on('mouseup', (e) => setSelectedBorder(e));
 
       // Add the cloned shape to the layer
+      // setSelectedBorder(clonedShape)
       layer.add(clonedShape);
       layer.batchDraw(); // Redraw layer for performance
 
@@ -946,6 +951,19 @@ const App = () => {
     positionCircles();
   };
 
+  const handleBgColor = (e) => {
+    // setBgColor(e.target.dataset.color)
+    const selectedRectId = tanlanganShape.id;
+    const shapes = stageRef.current.find(".object");
+
+    shapes.forEach(shape => {
+      if (shape.attrs.id === selectedRectId) {
+        shape.fill(e.target.dataset.color)
+        shape.fillEnabled(true)
+      }
+    })
+  }
+
   return (
     <>
       <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
@@ -967,58 +985,68 @@ const App = () => {
           setIsAddingText={() => setIsAddingText(true)}
         />
         {tanlanganShape && (
-          <div className='controlls flex flex-col p-2 gap-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
-            {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth' || pr === 'radiusX' || pr === 'radiusY').map((property) => (
-              <div className='flex flex-col' key={property}>
-                <p className='capitalize text-[12px] text-gray-500'>{property}:</p>
-                <input
-                  key={tanlanganShape.id + '-' + property}
-                  max={1000}
-                  min={1}
-                  onChange={(e) => handleControlInput(property, e)}
-                  defaultValue={tanlanganShape[property]}
-                  type="number"
-                  className='border p-1 w-full rounded-md'
-                  placeholder={property}
-                />
-              </div>
-            ))}
-            <div className='flex items-center gap-2 my-1'>
-              <label className="switch">
-                <input
-                  type="checkbox" onChange={handleShowParametrs} />
-                <span className="slider round"></span>
-              </label>
-              <span>Show parametres</span>
+          <div className='border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
+            <div className='flex items-center gap-1 pt-2 pl-2'>
+              <button onClick={(e) => handleBgColor(e)} data-color="#f0f4f8" className='w-[25px] h-[25px] bg-[#f0f4f8] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#f8a5c2" className='w-[25px] h-[25px] bg-[#f8a5c2] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#00b894" className='w-[25px] h-[25px] bg-[#00b894] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#3498db" className='w-[25px] h-[25px] bg-[#3498db] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#fbc531" className='w-[25px] h-[25px] bg-[#fbc531] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#d1c4b8" className='w-[25px] h-[25px] bg-[#d1c4b8] rounded-sm'></button>
             </div>
-            <p className='capitalize text-[12px] text-gray-500'>Edges</p>
-            <div className='flex gap-2'>
-              <button className='border p-2 rounded-md' onClick={filledShape2}>
-                <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><svg strokeWidth="1.5"><path d="M3.33334 9.99998V6.66665C3.33334 6.04326 3.33403 4.9332 3.33539 3.33646C4.95233 3.33436 6.06276 3.33331 6.66668 3.33331H10"></path><path d="M13.3333 3.33331V3.34331"></path><path d="M16.6667 3.33331V3.34331"></path><path d="M16.6667 6.66669V6.67669"></path><path d="M16.6667 10V10.01"></path><path d="M3.33334 13.3333V13.3433"></path><path d="M16.6667 13.3333V13.3433"></path><path d="M3.33334 16.6667V16.6767"></path><path d="M6.66666 16.6667V16.6767"></path><path d="M10 16.6667V16.6767"></path><path d="M13.3333 16.6667V16.6767"></path><path d="M16.6667 16.6667V16.6767"></path></svg></svg>
-              </button>
-              <button className='border p-2 rounded-md' onClick={filledShape}>
-                <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><g strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 12v-4a4 4 0 0 1 4 -4h4"></path><line x1="16" y1="4" x2="16" y2="4.01"></line><line x1="20" y1="4" x2="20" y2="4.01"></line><line x1="20" y1="8" x2="20" y2="8.01"></line><line x1="20" y1="12" x2="20" y2="12.01"></line><line x1="4" y1="16" x2="4" y2="16.01"></line><line x1="20" y1="16" x2="20" y2="16.01"></line><line x1="4" y1="20" x2="4" y2="20.01"></line><line x1="8" y1="20" x2="8" y2="20.01"></line><line x1="12" y1="20" x2="12" y2="20.01"></line><line x1="16" y1="20" x2="16" y2="20.01"></line><line x1="20" y1="20" x2="20" y2="20.01"></line></g></svg>
-              </button>
-            </div>
-            {tanlanganShape.className === 'haligi-line' &&
-              <div>
-                <p className='capitalize text-[12px] text-gray-500'>Line actions</p>
-                <div className='flex itsm-center gap-2 mt-2'>
-                  <button className='border p-1 rounded-md'>Stop Line</button>
-                  <button className='border p-2 rounded-md' onClick={() => setShowControlPoints(!showControlPoints)}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 6h2V4h-2zm-7 8h2v-2H5zm12 6h2v-2h-2zm-2 0v-.5L8 16H5q-.825 0-1.412-.587T3 14v-2q0-.825.588-1.412T5 10h2.3L10 6.9V4q0-.825.588-1.412T12 2h2q.825 0 1.413.588T16 4v2q0 .825-.587 1.413T14 8h-2.3L9 11.1v3.15l6.125 3.05q.2-.575.713-.937T17 16h2q.825 0 1.413.588T21 18v2q0 .825-.587 1.413T19 22h-2q-.825 0-1.412-.587T15 20" /></svg>
-                  </button>
+            <div className='controlls flex flex-col p-2 gap-2 '>
+              {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth' || pr === 'radiusX' || pr === 'radiusY').map((property) => (
+                <div className='flex flex-col' key={property}>
+                  <p className='capitalize text-[12px] text-gray-500'>{property}:</p>
+                  <input
+                    key={tanlanganShape.id + '-' + property}
+                    max={1000}
+                    min={1}
+                    onChange={(e) => handleControlInput(property, e)}
+                    defaultValue={tanlanganShape[property]}
+                    type="number"
+                    className='border p-1 w-full rounded-md'
+                    placeholder={property}
+                  />
                 </div>
+              ))}
+              <div className='flex items-center gap-2 my-1'>
+                <label className="switch">
+                  <input
+                    type="checkbox" onChange={handleShowParametrs} />
+                  <span className="slider round"></span>
+                </label>
+                <span>Show parametres</span>
               </div>
-            }
-            <p className='capitalize text-[12px] text-gray-500'>Actions</p>
-            <div className='flex gap-2'>
-              <button className='p-2 border border rounded-md' onClick={deleteShape}>
-                <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path strokeWidth="1.25" d="M3.333 5.833h13.334M8.333 9.167v5M11.667 9.167v5M4.167 5.833l.833 10c0 .92.746 1.667 1.667 1.667h6.666c.92 0 1.667-.746 1.667-1.667l.833-10M7.5 5.833v-2.5c0-.46.373-.833.833-.833h3.334c.46 0 .833.373.833.833v2.5"></path></svg>
-              </button>
-              <button className='border p-2 border rounded-md' onClick={copyShape}>
-                <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><g strokeWidth="1.25"><path d="M14.375 6.458H8.958a2.5 2.5 0 0 0-2.5 2.5v5.417a2.5 2.5 0 0 0 2.5 2.5h5.417a2.5 2.5 0 0 0 2.5-2.5V8.958a2.5 2.5 0 0 0-2.5-2.5Z"></path><path clipRule="evenodd" d="M11.667 3.125c.517 0 .986.21 1.325.55.34.338.55.807.55 1.325v1.458H8.333c-.485 0-.927.185-1.26.487-.343.312-.57.75-.609 1.24l-.005 5.357H5a1.87 1.87 0 0 1-1.326-.55 1.87 1.87 0 0 1-.549-1.325V5c0-.518.21-.987.55-1.326.338-.34.807-.549 1.325-.549h6.667Z"></path></g></svg>
-              </button>
+              <p className='capitalize text-[12px] text-gray-500'>Edges</p>
+              <div className='flex gap-2'>
+                <button className='border p-2 rounded-md' onClick={filledShape2}>
+                  <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><svg strokeWidth="1.5"><path d="M3.33334 9.99998V6.66665C3.33334 6.04326 3.33403 4.9332 3.33539 3.33646C4.95233 3.33436 6.06276 3.33331 6.66668 3.33331H10"></path><path d="M13.3333 3.33331V3.34331"></path><path d="M16.6667 3.33331V3.34331"></path><path d="M16.6667 6.66669V6.67669"></path><path d="M16.6667 10V10.01"></path><path d="M3.33334 13.3333V13.3433"></path><path d="M16.6667 13.3333V13.3433"></path><path d="M3.33334 16.6667V16.6767"></path><path d="M6.66666 16.6667V16.6767"></path><path d="M10 16.6667V16.6767"></path><path d="M13.3333 16.6667V16.6767"></path><path d="M16.6667 16.6667V16.6767"></path></svg></svg>
+                </button>
+                <button className='border p-2 rounded-md' onClick={filledShape}>
+                  <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><g strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 12v-4a4 4 0 0 1 4 -4h4"></path><line x1="16" y1="4" x2="16" y2="4.01"></line><line x1="20" y1="4" x2="20" y2="4.01"></line><line x1="20" y1="8" x2="20" y2="8.01"></line><line x1="20" y1="12" x2="20" y2="12.01"></line><line x1="4" y1="16" x2="4" y2="16.01"></line><line x1="20" y1="16" x2="20" y2="16.01"></line><line x1="4" y1="20" x2="4" y2="20.01"></line><line x1="8" y1="20" x2="8" y2="20.01"></line><line x1="12" y1="20" x2="12" y2="20.01"></line><line x1="16" y1="20" x2="16" y2="20.01"></line><line x1="20" y1="20" x2="20" y2="20.01"></line></g></svg>
+                </button>
+              </div>
+              {tanlanganShape.className === 'haligi-line' &&
+                <div>
+                  <p className='capitalize text-[12px] text-gray-500'>Line actions</p>
+                  <div className='flex itsm-center gap-2 mt-2'>
+                    <button className='border p-1 rounded-md'>Stop Line</button>
+                    <button className='border p-2 rounded-md' onClick={() => setShowControlPoints(!showControlPoints)}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 6h2V4h-2zm-7 8h2v-2H5zm12 6h2v-2h-2zm-2 0v-.5L8 16H5q-.825 0-1.412-.587T3 14v-2q0-.825.588-1.412T5 10h2.3L10 6.9V4q0-.825.588-1.412T12 2h2q.825 0 1.413.588T16 4v2q0 .825-.587 1.413T14 8h-2.3L9 11.1v3.15l6.125 3.05q.2-.575.713-.937T17 16h2q.825 0 1.413.588T21 18v2q0 .825-.587 1.413T19 22h-2q-.825 0-1.412-.587T15 20" /></svg>
+                    </button>
+                  </div>
+                </div>
+              }
+              <p className='capitalize text-[12px] text-gray-500'>Actions</p>
+              <div className='flex gap-2'>
+                <button className='p-2 border border rounded-md' onClick={deleteShape}>
+                  <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path strokeWidth="1.25" d="M3.333 5.833h13.334M8.333 9.167v5M11.667 9.167v5M4.167 5.833l.833 10c0 .92.746 1.667 1.667 1.667h6.666c.92 0 1.667-.746 1.667-1.667l.833-10M7.5 5.833v-2.5c0-.46.373-.833.833-.833h3.334c.46 0 .833.373.833.833v2.5"></path></svg>
+                </button>
+                <button className='border p-2 border rounded-md' onClick={copyShape}>
+                  <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><g strokeWidth="1.25"><path d="M14.375 6.458H8.958a2.5 2.5 0 0 0-2.5 2.5v5.417a2.5 2.5 0 0 0 2.5 2.5h5.417a2.5 2.5 0 0 0 2.5-2.5V8.958a2.5 2.5 0 0 0-2.5-2.5Z"></path><path clipRule="evenodd" d="M11.667 3.125c.517 0 .986.21 1.325.55.34.338.55.807.55 1.325v1.458H8.333c-.485 0-.927.185-1.26.487-.343.312-.57.75-.609 1.24l-.005 5.357H5a1.87 1.87 0 0 1-1.326-.55 1.87 1.87 0 0 1-.549-1.325V5c0-.518.21-.987.55-1.326.338-.34.807-.549 1.325-.549h6.667Z"></path></g></svg>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1071,7 +1099,7 @@ const App = () => {
                   // onTap={handleSelectShape}
                   name='object'
                   fillEnabled={false} // hatch qoshish un ochirish kerak
-                  fill="transparent" // hatch qoshish un ochirish kerak
+                  fill={bgColor} // hatch qoshish un ochirish kerak
                   stroke={hoveradShapeId === rectangle.id ? '#00000044' : 'black'}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, rectangle.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, rectangle.id)}
@@ -1142,7 +1170,7 @@ const App = () => {
                   outerRadius={arc.outerRadius}
                   angle={arc.angle}
                   rotation={arc.rotation}
-                  strokeWidth={hoveradShapeId === arc.id ? 0 : 1}
+                  strokeWidth={hoveradShapeId === arc.id ? 10 : 4}
                   fill="transparent"
                   draggable={action === ACTIONS.SELECT}
                   onClick={onClick}
