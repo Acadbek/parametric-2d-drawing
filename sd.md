@@ -19,12 +19,12 @@ Tasks for that project
         --Text: Adds text to your drawing, either as single-line text or multiline text (paragraphs).
         --Dim (Dimension): Adds dimension lines to show the size or distance of objects in your drawing.
         Trim: Trims or cuts objects at their intersections or along a specified boundary.
-        Extend: Extends objects to meet the edges of other objects.
-        Offset: Creates parallel copies of objects at a specified distance.
+        --Extend: Extends objects to meet the edges of other objects.
+        --Offset: Creates parallel copies of objects at a specified distance.
         --Mirror: Creates a mirror image of an object across a specified line.
         Array: Copies objects in a pattern, such as in a circular or rectangular arrangement.
         --Fillet: Rounds the corners where two lines meet.
-        Chamfer: Bevels the corners where two lines meet, creating a sloped edge.
+        --Chamfer: Bevels the corners where two lines meet, creating a sloped edge.
 
 4- at last we will be able to connect our left side inputs to our cnvas drawings and whenever I change the parameters whole canvas will change as ı wanted as parameters...
 

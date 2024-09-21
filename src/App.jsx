@@ -6,6 +6,8 @@ import { drawCircle, drawRectangle, handleMouseEnter, handleMouseLeave, updateLi
 import { Tools } from './components/Tools';
 import { Html } from 'react-konva-utils';
 import TextComponent from './components/Text';
+import img from '/hatch.png'
+
 const GUIDELINE_OFFSET = 5;
 
 const App = () => {
@@ -428,14 +430,16 @@ const App = () => {
   // end of snap -------------------------------
 
   const handleDragMove = (e) => {
+    // setTanlanganShape(e.target.attrs.type)
     handleTransformNew()
-    const { x, y, width, height } = e.target.attrs;
-    setTanlanganShape((prev) => ({
-      ...prev,
-      x,
-      y,
-      width, height
-    }));
+    setTanlanganShape(e.target.attrs)
+    // const { x, y, width, height } = e.target.attrs;
+    // setTanlanganShape((prev) => ({
+    //   ...prev,
+    //   x,
+    //   y,
+    //   width, height
+    // }));
 
     const layer = layerRef.current;
     layer.find('.guid-line').forEach((l) => l.destroy());
@@ -769,6 +773,8 @@ const App = () => {
     setAllShapes(shapes)
 
     setTanlanganShape(e.target.attrs)
+    console.log(e.target.attrs.className);
+
     if (action !== ACTIONS.SELECT) return;
     setSelectedBorder(e)
   };
@@ -863,11 +869,19 @@ const App = () => {
         fill: 'transparent', // or the same as the original
       });
 
-      // clonedShape.setAttrs({})
+      clonedShape.setAttrs({})
 
-      // Set additional properties and event handlers
-      clonedShape.stroke(hoveradShapeId === clonedShape.id() ? '#00000044' : 'black');
-      clonedShape.strokeWidth(hoveradShapeId === clonedShape.id() ? 10 : 4);
+      clonedShape.on('mouseenter', () => {
+        clonedShape.stroke('#00000044'); // Update stroke on hover
+        clonedShape.strokeWidth(10); // Update stroke width on hover
+        layer.batchDraw(); // Redraw the layer to show changes
+      });
+
+      clonedShape.on('mouseleave', () => {
+        clonedShape.stroke('black'); // Revert stroke on mouse leave
+        clonedShape.strokeWidth(4); // Revert stroke width on mouse leave
+        layer.batchDraw(); // Redraw the layer to show changes
+      });
 
       // Add event handlers to the cloned shape
       clonedShape.on('click', onClick);
@@ -888,19 +902,30 @@ const App = () => {
     }
   };
 
-  const filledShape = () => {
+  const filledShape2 = () => {
+    const selectedRectId = tanlanganShape.id; // Get the ID of the selected rectangle (implementation details may vary depending on your selection logic)
     const shapes = stageRef.current.find(".object");
 
-    shapes.forEach((shape, index) => {
-      if (index === 0) return; // Skip the first shape
-
-      // Check if the shape is a rectangle (or any other type you need to apply the cornerRadius to)
+    shapes.forEach((shape) => {
       if (shape.getClassName() === 'Rect') {
-        shape.cornerRadius(10); // Set the corner radius to 10
-        // shape.fill("transparent"); // Ensure the shape is filled as needed
-        // shape.stroke('black'); // Set border color, if needed
-        // shape.strokeWidth(2); // Set border width, if needed
-        shape.getLayer().batchDraw(); // Redraw the layer for changes to take effect
+        if (shape.attrs.id === selectedRectId) {
+          shape.cornerRadius(0); // Set the corner radius to 10
+          shape.getLayer().batchDraw(); // Redraw the layer for changes to take effect
+        }
+      }
+    });
+  };
+
+  const filledShape = () => {
+    const selectedRectId = tanlanganShape.id; // Get the ID of the selected rectangle (implementation details may vary depending on your selection logic)
+    const shapes = stageRef.current.find(".object");
+
+    shapes.forEach((shape) => {
+      if (shape.getClassName() === 'Rect') {
+        if (shape.attrs.id === selectedRectId) {
+          shape.cornerRadius(10); // Set the corner radius to 10
+          shape.getLayer().batchDraw(); // Redraw the layer for changes to take effect
+        }
       }
     });
   };
@@ -944,8 +969,8 @@ const App = () => {
         {tanlanganShape && (
           <div className='controlls flex flex-col p-2 gap-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
             {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth' || pr === 'radiusX' || pr === 'radiusY').map((property) => (
-              <div className='flex' key={property}>
-                <p>{property}:</p>
+              <div className='flex flex-col' key={property}>
+                <p className='capitalize text-[12px] text-gray-500'>{property}:</p>
                 <input
                   key={tanlanganShape.id + '-' + property}
                   max={1000}
@@ -953,12 +978,12 @@ const App = () => {
                   onChange={(e) => handleControlInput(property, e)}
                   defaultValue={tanlanganShape[property]}
                   type="number"
-                  className='border p-1 w-[60px]'
+                  className='border p-1 w-full rounded-md'
                   placeholder={property}
                 />
               </div>
             ))}
-            <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-2 my-1'>
               <label className="switch">
                 <input
                   type="checkbox" onChange={handleShowParametrs} />
@@ -966,13 +991,32 @@ const App = () => {
               </label>
               <span>Show parametres</span>
             </div>
-            <button className='border' onClick={deleteShape}>del</button>
-            <button className='border' onClick={copyShape}>copy</button>
-            <button className='border' onClick={filledShape}>[]</button>
-            <button className='border'>Draw New Line</button>
-            <button className='border' onClick={() => setShowControlPoints(!showControlPoints)}>
-              Show/Hide Control Points
-            </button>
+            <p className='capitalize text-[12px] text-gray-500'>Edges</p>
+            <div className='flex gap-2'>
+              <button className='border p-2 rounded-md' onClick={filledShape2}>
+                <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" class="" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><svg stroke-width="1.5"><path d="M3.33334 9.99998V6.66665C3.33334 6.04326 3.33403 4.9332 3.33539 3.33646C4.95233 3.33436 6.06276 3.33331 6.66668 3.33331H10"></path><path d="M13.3333 3.33331V3.34331"></path><path d="M16.6667 3.33331V3.34331"></path><path d="M16.6667 6.66669V6.67669"></path><path d="M16.6667 10V10.01"></path><path d="M3.33334 13.3333V13.3433"></path><path d="M16.6667 13.3333V13.3433"></path><path d="M3.33334 16.6667V16.6767"></path><path d="M6.66666 16.6667V16.6767"></path><path d="M10 16.6667V16.6767"></path><path d="M13.3333 16.6667V16.6767"></path><path d="M16.6667 16.6667V16.6767"></path></svg></svg>
+              </button>
+              <button className='border p-2 rounded-md' onClick={filledShape}>
+                <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 24 24" class="" fill="none" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><g stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 12v-4a4 4 0 0 1 4 -4h4"></path><line x1="16" y1="4" x2="16" y2="4.01"></line><line x1="20" y1="4" x2="20" y2="4.01"></line><line x1="20" y1="8" x2="20" y2="8.01"></line><line x1="20" y1="12" x2="20" y2="12.01"></line><line x1="4" y1="16" x2="4" y2="16.01"></line><line x1="20" y1="16" x2="20" y2="16.01"></line><line x1="4" y1="20" x2="4" y2="20.01"></line><line x1="8" y1="20" x2="8" y2="20.01"></line><line x1="12" y1="20" x2="12" y2="20.01"></line><line x1="16" y1="20" x2="16" y2="20.01"></line><line x1="20" y1="20" x2="20" y2="20.01"></line></g></svg>
+              </button>
+            </div>
+            {tanlanganShape.className === 'haligi-line' &&
+              <div>
+                <button className='border p-1 rounded-md'>Draw New Line</button>
+                <button className='border p-1 rounded-md' onClick={() => setShowControlPoints(!showControlPoints)}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 6h2V4h-2zm-7 8h2v-2H5zm12 6h2v-2h-2zm-2 0v-.5L8 16H5q-.825 0-1.412-.587T3 14v-2q0-.825.588-1.412T5 10h2.3L10 6.9V4q0-.825.588-1.412T12 2h2q.825 0 1.413.588T16 4v2q0 .825-.587 1.413T14 8h-2.3L9 11.1v3.15l6.125 3.05q.2-.575.713-.937T17 16h2q.825 0 1.413.588T21 18v2q0 .825-.587 1.413T19 22h-2q-.825 0-1.412-.587T15 20" /></svg>
+                </button>
+              </div>
+            }
+            <p className='capitalize text-[12px] text-gray-500'>Actions</p>
+            <div className='flex gap-2'>
+              <button className='p-2 border border rounded-md' onClick={deleteShape}>
+                <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" class="" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path stroke-width="1.25" d="M3.333 5.833h13.334M8.333 9.167v5M11.667 9.167v5M4.167 5.833l.833 10c0 .92.746 1.667 1.667 1.667h6.666c.92 0 1.667-.746 1.667-1.667l.833-10M7.5 5.833v-2.5c0-.46.373-.833.833-.833h3.334c.46 0 .833.373.833.833v2.5"></path></svg>
+              </button>
+              <button className='border p-2 border rounded-md' onClick={copyShape}>
+                <svg width={20} aria-hidden="true" focusable="false" role="img" viewBox="0 0 20 20" class="" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><g stroke-width="1.25"><path d="M14.375 6.458H8.958a2.5 2.5 0 0 0-2.5 2.5v5.417a2.5 2.5 0 0 0 2.5 2.5h5.417a2.5 2.5 0 0 0 2.5-2.5V8.958a2.5 2.5 0 0 0-2.5-2.5Z"></path><path clip-rule="evenodd" d="M11.667 3.125c.517 0 .986.21 1.325.55.34.338.55.807.55 1.325v1.458H8.333c-.485 0-.927.185-1.26.487-.343.312-.57.75-.609 1.24l-.005 5.357H5a1.87 1.87 0 0 1-1.326-.55 1.87 1.87 0 0 1-.549-1.325V5c0-.518.21-.987.55-1.326.338-.34.807-.549 1.325-.549h6.667Z"></path></g></svg>
+              </button>
+            </div>
           </div>
         )}
 
@@ -1003,6 +1047,9 @@ const App = () => {
               {/* <LionImage /> */}
               {rectangles.map((rectangle) => (
                 <Rect
+                  fillPatternImage={img}
+                  fillPatternX={0}
+                  fillPatternY={0}
                   type="rectangle"
                   key={rectangle.id}
                   id={rectangle.id}
@@ -1138,11 +1185,13 @@ const App = () => {
                       key={i}
                       x={point.x}
                       y={point.y}
-                      radius={9}
+                      radius={hoveradShapeId === i ? 11 : 9}
                       name="circle"
                       fill="red"
                       draggable
                       onDragMove={handleDragMoveCircle(i)}
+                      onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, i)}
+                      onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, i)}
                     />
                   ))}
               </Group>
@@ -1179,7 +1228,7 @@ const App = () => {
                     y={text.y}
                     text={text.text}
                     fontSize={24}
-                    fontFamily="Calibri"
+                    fontFamily="Arial"
                     fill="black"
                     draggable
                     onDblClick={() => handleTextDblClick(text.id)}
@@ -1207,7 +1256,7 @@ const App = () => {
                           top: text.y,
                           left: text.x,
                           fontSize: 24,
-                          fontFamily: "Calibri",
+                          fontFamily: "Arial",
                           background: "white", // Orqa fon rangini ko'rinmas qilish
                           border: "none", // Chiziqni olib tashlash
                           outline: "none", // Fokus chiziqlarini olib tashlash
@@ -1238,7 +1287,7 @@ const App = () => {
             isDrawing && !close && <button onClick={() => setClose(true)} className='border'>close</button>
           }
         </div>
-      </div >
+      </div>
     </>
   );
 };
