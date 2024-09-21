@@ -952,17 +952,26 @@ const App = () => {
   };
 
   const handleBgColor = (e) => {
-    // setBgColor(e.target.dataset.color)
-    const selectedRectId = tanlanganShape.id;
-    const shapes = stageRef.current.find(".object");
+    const selectedRectId = tanlanganShape.id; // Get the selected shape's ID
+    const shapes = stageRef.current.find(".object"); // Find all shapes
 
-    shapes.forEach(shape => {
+    shapes.forEach((shape) => {
       if (shape.attrs.id === selectedRectId) {
-        shape.fill(e.target.dataset.color)
-        shape.fillEnabled(true)
+        const color = e.target.dataset.color;
+
+        if (color === 'transparent') {
+          shape.fill('transparent');
+          shape.fillEnabled(false); // Disable the fill
+        } else {
+          shape.fill(color);
+          shape.fillEnabled(true); // Enable the fill for any other color
+        }
+
+        shape.getLayer().batchDraw(); // Redraw the layer to apply changes
       }
-    })
-  }
+    });
+  };
+
 
   return (
     <>
@@ -985,7 +994,8 @@ const App = () => {
           setIsAddingText={() => setIsAddingText(true)}
         />
         {tanlanganShape && (
-          <div className='border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
+          <div className='p-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
+            <p className='capitalize text-[12px] text-gray-500'>Background</p>
             <div className='flex items-center gap-1 pt-2 pl-2'>
               <button onClick={(e) => handleBgColor(e)} data-color="#f0f4f8" className='w-[25px] h-[25px] bg-[#f0f4f8] rounded-sm'></button>
               <button onClick={(e) => handleBgColor(e)} data-color="#f8a5c2" className='w-[25px] h-[25px] bg-[#f8a5c2] rounded-sm'></button>
@@ -993,8 +1003,9 @@ const App = () => {
               <button onClick={(e) => handleBgColor(e)} data-color="#3498db" className='w-[25px] h-[25px] bg-[#3498db] rounded-sm'></button>
               <button onClick={(e) => handleBgColor(e)} data-color="#fbc531" className='w-[25px] h-[25px] bg-[#fbc531] rounded-sm'></button>
               <button onClick={(e) => handleBgColor(e)} data-color="#d1c4b8" className='w-[25px] h-[25px] bg-[#d1c4b8] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="transparent" className='w-[25px] h-[25px] border rounded-sm'></button>
             </div>
-            <div className='controlls flex flex-col p-2 gap-2 '>
+            <div className='controlls flex flex-col gap-2 '>
               {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth' || pr === 'radiusX' || pr === 'radiusY').map((property) => (
                 <div className='flex flex-col' key={property}>
                   <p className='capitalize text-[12px] text-gray-500'>{property}:</p>
@@ -1088,7 +1099,7 @@ const App = () => {
                   y={rectangle.points[0].y}
                   // fillPatternImage={image}
                   // fillPatternRepeat="repeat"
-                  strokeWidth={hoveradShapeId === rectangle.id ? 10 : 4}
+                  strokeWidth={4}
                   height={rectangle.height}
                   width={rectangle.width}
                   draggable={action === ACTIONS.SELECT}
@@ -1127,7 +1138,7 @@ const App = () => {
                   fillEnabled={false}
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, circle.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, circle.id)}
-                  strokeWidth={hoveradShapeId === circle.id ? 10 : 4}
+                  strokeWidth={4}
                   onMouseUp={(e) => {
                     setSelectedBorder(e)
                   }
@@ -1170,7 +1181,7 @@ const App = () => {
                   outerRadius={arc.outerRadius}
                   angle={arc.angle}
                   rotation={arc.rotation}
-                  strokeWidth={hoveradShapeId === arc.id ? 10 : 4}
+                  strokeWidth={4}
                   fill="transparent"
                   draggable={action === ACTIONS.SELECT}
                   onClick={onClick}
@@ -1236,8 +1247,9 @@ const App = () => {
                   radiusX={ellipse.radiusX}
                   radiusY={ellipse.radiusY}
                   fillEnabled={false}
-                  strokeWidth={hoveradShapeId === ellipse.id ? 10 : 4}
+                  strokeWidth={4}
                   draggable
+                  name='object'
                   onDragMove={handleDragMove}
                   onDragEnd={(e) => handleDragEnd(ellipse.id, null, e)}
                   onClick={onClick}
