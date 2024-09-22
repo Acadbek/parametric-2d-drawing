@@ -7,6 +7,7 @@ import { Tools } from './components/Tools';
 import { Html } from 'react-konva-utils';
 import TextComponent from './components/Text';
 import img from '/hatch.png'
+import Color from 'color'
 
 const GUIDELINE_OFFSET = 5;
 
@@ -28,6 +29,7 @@ const App = () => {
   const [currentLine, setCurrentLine] = React.useState({ points: [], controlPoints: [] }); // Track the current line
   const [editingTextId, setEditingTextId] = React.useState(null); // Tahrirlanayotgan matn IDsi
   const [showFinishButton, setShowFinishButton] = React.useState(false)
+  const [strokeColor, setStrokeColor] = React.useState('black')
   // text end
 
   const [lines, setLines] = React.useState([]);
@@ -861,29 +863,36 @@ const App = () => {
     if (shapeToCopy) {
       console.log('copied', shapeToCopy);
 
+      // Get original x and y position of the shape to copy
+      const originalX = shapeToCopy.x();
+      const originalY = shapeToCopy.y();
+
+      const copyOffset = stageRef.current.find('.object').length * 10;
+
       // Clone the shape with initial properties
       const clonedShape = shapeToCopy.clone({
-        x: shapeToCopy.x() + 10, // Slight offset to differentiate the clone visually
-        y: shapeToCopy.y() + 10,
+        x: originalX + 10, // Offset each clone from the original shape's x position
+        y: originalY + copyOffset, // Apply a dynamic y-offset for subsequent copies  
         id: uuidv4(), // Assign a new unique ID
         draggable: true, // Make the cloned shape draggable
         name: 'object',
         width: shapeToCopy.width(),
         height: shapeToCopy.height(),
-        fill: 'transparent', // or the same as the original
+        fill: shapeToCopy.fill(), // Copy the same fill color
+        stroke: shapeToCopy.stroke(), // Copy the same stroke color
+        strokeWidth: shapeToCopy.strokeWidth(), // Copy the stroke width
       });
 
       clonedShape.setAttrs({})
 
       clonedShape.on('mouseenter', () => {
-        clonedShape.stroke('#00000044'); // Update stroke on hover
-        clonedShape.strokeWidth(10); // Update stroke width on hover
+        clonedShape.stroke(Color(clonedShape.stroke()).alpha(0.5).string()); // Reduce opacity to 50%
+        // clonedShape.strokeWidth(10); // Update stroke width on hover
         layer.batchDraw(); // Redraw the layer to show changes
       });
 
       clonedShape.on('mouseleave', () => {
-        clonedShape.stroke('black'); // Revert stroke on mouse leave
-        clonedShape.strokeWidth(4); // Revert stroke width on mouse leave
+        clonedShape.stroke(shapeToCopy.stroke()); // Revert to original stroke color (full opacity)
         layer.batchDraw(); // Redraw the layer to show changes
       });
 
@@ -972,6 +981,25 @@ const App = () => {
     });
   };
 
+  const handleStrokeColor = (e) => {
+    const selectedRectId = tanlanganShape.id; // Get the selected shape's ID
+    const shapes = stageRef.current.find(".object"); // Find all shapes
+
+    shapes.forEach((shape) => {
+      if (shape.attrs.id === selectedRectId) {
+        const color = e.target.dataset.color;
+
+        if (color === 'transparent') {
+          shape.stroke('transparent');
+        } else {
+          shape.stroke(color);
+        }
+
+        shape.getLayer().batchDraw(); // Redraw the layer to apply changes
+      }
+    });
+  }
+
 
   return (
     <>
@@ -997,13 +1025,24 @@ const App = () => {
           <div className='p-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
             <p className='capitalize text-[12px] text-gray-500'>Background</p>
             <div className='flex items-center gap-1 pt-2 pl-2'>
-              <button onClick={(e) => handleBgColor(e)} data-color="#f0f4f8" className='w-[25px] h-[25px] bg-[#f0f4f8] rounded-sm'></button>
-              <button onClick={(e) => handleBgColor(e)} data-color="#f8a5c2" className='w-[25px] h-[25px] bg-[#f8a5c2] rounded-sm'></button>
-              <button onClick={(e) => handleBgColor(e)} data-color="#00b894" className='w-[25px] h-[25px] bg-[#00b894] rounded-sm'></button>
-              <button onClick={(e) => handleBgColor(e)} data-color="#3498db" className='w-[25px] h-[25px] bg-[#3498db] rounded-sm'></button>
-              <button onClick={(e) => handleBgColor(e)} data-color="#fbc531" className='w-[25px] h-[25px] bg-[#fbc531] rounded-sm'></button>
-              <button onClick={(e) => handleBgColor(e)} data-color="#d1c4b8" className='w-[25px] h-[25px] bg-[#d1c4b8] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#e2e8f0" className='w-[25px] h-[25px] bg-[#e2e8f0] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#fbc7d6" className='w-[25px] h-[25px] bg-[#fbc7d6] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#33c9a8" className='w-[25px] h-[25px] bg-[#33c9a8] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#5dade2" className='w-[25px] h-[25px] bg-[#5dade2] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#fde27a" className='w-[25px] h-[25px] bg-[#fde27a] rounded-sm'></button>
+              <button onClick={(e) => handleBgColor(e)} data-color="#e2dcd5" className='w-[25px] h-[25px] bg-[#e2dcd5] rounded-sm'></button>
               <button onClick={(e) => handleBgColor(e)} data-color="transparent" className='w-[25px] h-[25px] border rounded-sm'></button>
+            </div>
+
+            <p className='capitalize text-[12px] text-gray-500'>Stroke</p>
+            <div className='flex items-center gap-1 pt-2 pl-2'>
+              <button onClick={(e) => handleStrokeColor(e)} data-color="#b1b7c2" className='w-[25px] h-[25px] bg-[#c9d0da] rounded-sm'></button>
+              <button onClick={(e) => handleStrokeColor(e)} data-color="#f8a5c2" className='w-[25px] h-[25px] bg-[#e688a4] rounded-sm'></button>
+              <button onClick={(e) => handleStrokeColor(e)} data-color="#00b894" className='w-[25px] h-[25px] bg-[#009f7d] rounded-sm'></button>
+              <button onClick={(e) => handleStrokeColor(e)} data-color="#3498db" className='w-[25px] h-[25px] bg-[#2a79af] rounded-sm'></button>
+              <button onClick={(e) => handleStrokeColor(e)} data-color="#fbc531" className='w-[25px] h-[25px] bg-[#d49c28] rounded-sm'></button>
+              <button onClick={(e) => handleStrokeColor(e)} data-color="#d1c4b8" className='w-[25px] h-[25px] bg-[#a99d91] rounded-sm'></button>
+              <button onClick={(e) => handleStrokeColor(e)} data-color="transparent" className='w-[25px] h-[25px] border rounded-sm'></button>
             </div>
             <div className='controlls flex flex-col gap-2 '>
               {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth' || pr === 'radiusX' || pr === 'radiusY').map((property) => (
@@ -1099,7 +1138,6 @@ const App = () => {
                   y={rectangle.points[0].y}
                   // fillPatternImage={image}
                   // fillPatternRepeat="repeat"
-                  strokeWidth={4}
                   height={rectangle.height}
                   width={rectangle.width}
                   draggable={action === ACTIONS.SELECT}
@@ -1111,7 +1149,9 @@ const App = () => {
                   name='object'
                   fillEnabled={false} // hatch qoshish un ochirish kerak
                   fill={bgColor} // hatch qoshish un ochirish kerak
-                  stroke={hoveradShapeId === rectangle.id ? '#00000044' : 'black'}
+                  // stroke={hoveradShapeId === rectangle.id ? Color(strokeColor).alpha(0.5).string() : strokeColor} // 50% opacity on hover
+                  stroke={strokeColor}
+                  strokeWidth={4} // Slightly increase stroke width on hover
                   onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, rectangle.id)}
                   onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, rectangle.id)}
                   onMouseUp={(e) => {
