@@ -1000,6 +1000,31 @@ const App = () => {
     });
   }
 
+  const handleStrokeWidth = (e) => {
+    const selectedRectId = tanlanganShape.id; // Get the selected shape's ID
+    const shapes = stageRef.current.find(".object"); // Find all shapes
+
+    shapes.forEach((shape) => {
+      if (shape.attrs.id === selectedRectId) {
+        shape.strokeWidth(e.target.dataset.strokeWidth)
+        shape.fillEnabled(true)
+        shape.getLayer().batchDraw(); // Redraw the layer to apply changes
+      }
+    });
+  }
+
+  const handleStrokeStyleChange = (style) => {
+    const selectedRectId = tanlanganShape.id; // Get the selected shape's ID
+    const shapes = stageRef.current.find('.object');
+
+    shapes.forEach(shape => {
+      if (shape.attrs.id === selectedRectId) {
+        shape.dash(style);
+      }
+    });
+    layerRef.batchDraw(); // Redraw the layer to reflect changes
+  };
+
 
   return (
     <>
@@ -1022,7 +1047,7 @@ const App = () => {
           setIsAddingText={() => setIsAddingText(true)}
         />
         {tanlanganShape && (
-          <div className='p-2 border rounded-xl shadow-xl w-[220px] h-[700px] z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
+          <div className='p-2 border rounded-xl shadow-xl w-[220px] h-[700px] overflow-scroll z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
             <p className='capitalize text-[12px] text-gray-500'>Background</p>
             <div className='flex items-center gap-1 pt-2 pl-2'>
               <button onClick={(e) => handleBgColor(e)} data-color="#e2e8f0" className='w-[25px] h-[25px] bg-[#e2e8f0] rounded-sm'></button>
@@ -1034,7 +1059,7 @@ const App = () => {
               <button onClick={(e) => handleBgColor(e)} data-color="transparent" className='w-[25px] h-[25px] border rounded-sm'></button>
             </div>
 
-            <p className='capitalize text-[12px] text-gray-500'>Stroke</p>
+            <p className='capitalize text-[12px] text-gray-500 mt-4'>Stroke</p>
             <div className='flex items-center gap-1 pt-2 pl-2'>
               <button onClick={(e) => handleStrokeColor(e)} data-color="#b1b7c2" className='w-[25px] h-[25px] bg-[#c9d0da] rounded-sm'></button>
               <button onClick={(e) => handleStrokeColor(e)} data-color="#f8a5c2" className='w-[25px] h-[25px] bg-[#e688a4] rounded-sm'></button>
@@ -1043,6 +1068,42 @@ const App = () => {
               <button onClick={(e) => handleStrokeColor(e)} data-color="#fbc531" className='w-[25px] h-[25px] bg-[#d49c28] rounded-sm'></button>
               <button onClick={(e) => handleStrokeColor(e)} data-color="#d1c4b8" className='w-[25px] h-[25px] bg-[#a99d91] rounded-sm'></button>
               <button onClick={(e) => handleStrokeColor(e)} data-color="transparent" className='w-[25px] h-[25px] border rounded-sm'></button>
+            </div>
+
+            <p className='capitalize text-[12px] text-gray-500 mt-4'>Stroke Width</p>
+            <div className='flex items-center gap-1 pt-2 pl-2'>
+              <button data-stroke-width="1" onClick={handleStrokeWidth} className='w-[45px] h-[25px] border rounded-sm flex items-center justify-center' >
+                <div className='w-[20px] h-[1px] bg-black pointer-events-none'></div>
+              </button>
+              <button data-stroke-width="4" onClick={handleStrokeWidth} className='w-[45px] h-[25px] border rounded-sm flex items-center justify-center' >
+                <div className='w-[20px] h-[4px] bg-black pointer-events-none'></div>
+              </button>
+              <button data-stroke-width="6" onClick={handleStrokeWidth} className='w-[45px] h-[25px] border rounded-sm flex items-center justify-center' >
+                <div className='w-[20px] h-[6px] bg-black pointer-events-none'></div>
+              </button>
+            </div>
+
+            <p className='capitalize text-[12px] text-gray-500 mt-4'>Stroke Style</p>
+            <div className='flex items-center gap-1 pt-2 pl-2'>
+              <button onClick={() => handleStrokeStyleChange([])} className='w-[45px] h-[25px] border rounded-sm flex items-center justify-center' >
+                <div className='w-[20px] h-[1px] bg-black pointer-events-none'></div>
+              </button>
+              <button onClick={() => handleStrokeStyleChange([15, 5])} className='w-[45px] h-[25px] border rounded-sm flex items-center justify-center' >
+                <div className='flex gap-1 pointer-events-none'>
+                  <div className='w-[8px] h-[1px] bg-black'></div>
+                  <div className='w-[8px] h-[1px] bg-black'></div>
+                  <div className='w-[8px] h-[1px] bg-black'></div>
+                </div>
+              </button>
+              <button onClick={() => handleStrokeStyleChange([3, 3])} className='w-[45px] h-[25px] border rounded-sm flex items-center justify-center' >
+                <div className='flex gap-1 pointer-events-none'>
+                  <div className='w-[2px] h-[2px] bg-black'></div>
+                  <div className='w-[2px] h-[2px] bg-black'></div>
+                  <div className='w-[2px] h-[2px] bg-black'></div>
+                  <div className='w-[2px] h-[2px] bg-black'></div>
+                  <div className='w-[2px] h-[2px] bg-black'></div>
+                </div>
+              </button>
             </div>
             <div className='controlls flex flex-col gap-2 '>
               {Object.keys(tanlanganShape).filter((pr, idx) => pr === 'width' || pr === 'height' || pr === 'radius' || pr === 'x' || pr === 'y' || pr === 'strokeWidth' || pr === 'radiusX' || pr === 'radiusY').map((property) => (
