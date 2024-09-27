@@ -9,4 +9,6 @@ export const ACTIONS = {
   ARC: 'ARC',
   ELLIPSE: 'ELLIPSE',
   SPLINE: 'SPLINE',
+  HALFARC: 'HALFARC',
+  TRIANGLES: 'TRIANGLES'
 };

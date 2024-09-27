@@ -14,7 +14,7 @@ const DrawLine = () => {
     points: [],
     controlPoints: [],
   });
-  const [lines, setLines] = React.useState([]);
+  const [lines, setLines] = React.useState([{ id: 1, points: [234, 565] }]);
 
   const transformerRef = React.useRef();
   const stageRef = React.useRef();
@@ -23,7 +23,6 @@ const DrawLine = () => {
   const isPainting = React.useRef();
   const layerRef = React.useRef();
 
-  // Utility function to calculate distance from a point to a segment
   const distanceToSegment = (x1, y1, x2, y2, x, y) => {
     const length2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
     if (length2 === 0) return Math.hypot(x - x1, y - y1);
@@ -53,11 +52,7 @@ const DrawLine = () => {
 
     // Invert the line's transform to convert the absolute click position
     // to a position relative to the line's origin
-    const relativeClickPos = line
-      .getAbsoluteTransform()
-      .copy()
-      .invert()
-      .point({ x, y });
+    const relativeClickPos = line.getAbsoluteTransform().copy().invert().point({ x, y });
 
     if (curve.points.length > 0) {
       const tolerance = 10;
@@ -71,14 +66,7 @@ const DrawLine = () => {
         const x2 = curve.points[i + 2];
         const y2 = curve.points[i + 3];
 
-        const dist = distanceToSegment(
-          x1,
-          y1,
-          x2,
-          y2,
-          relativeClickPos.x,
-          relativeClickPos.y
-        );
+        const dist = distanceToSegment(x1, y1, x2, y2, relativeClickPos.x, relativeClickPos.y);
         if (dist < tolerance && dist < minDist) {
           minDist = dist;
           segmentIndex = i;
@@ -111,73 +99,128 @@ const DrawLine = () => {
     }
   };
 
-  // Handles pointer down event to start drawing a line
+  const updateLinePoints = (lines, currentShapeId, x, y) => {
+    return lines.map((line) => {
+      if (line.id === currentShapeId) {
+        return {
+          ...line,
+          points: [line.points[0], line.points[1], x, y],
+        };
+      }
+      return line;
+    });
+  };
+
+
   const onPointerDown = (e) => {
-    const pos = e.target.getStage().getPointerPosition();
-    const stage = stageRef.current;
-    const { x, y } = stage.getPointerPosition();
-    const id = uuidv4();
+    const { x, y } = e.target.getStage().getPointerPosition();
 
-    // Set the current shape ID and mark the painting state
-    currentShapeId.current = id;
-    isPainting.current = true;
-
-    const action = "LINE";
-
-    // Start drawing a line if the action is 'LINE'
-    switch (action) {
-      case "LINE":
-        setIsDrawing(true);
-        setCurrentLine({
-          points: [x, y],
-          controlPoints: [{ x, y }],
-        });
-        break;
-    }
+    setIsDrawing(true)
+    setCurrentLine({
+      points: [x, y],
+      controlPoints: [{ x, y }],
+    });
   };
 
-  // Updates the points of the line being drawn
-  const updateLinePoints = (lines, id, x, y) => {
-    return lines.map((line) =>
-      line.id === id
-        ? { ...line, points: [line.points[0], line.points[1], x, y] }
-        : line
-    );
-  };
-
-  // Handles pointer move event to update the line's points
   const onPointerMove = (e) => {
-    const stage = stageRef.current;
-    const { x, y } = stage.getPointerPosition();
+    const { x, y } = e.target.getStage().getPointerPosition();
 
-    const action = "LINE";
-
-    // Update line points and current line on pointer move
-    switch (action) {
-      case "LINE":
-        setLines((lines) =>
-          updateLinePoints(lines, currentShapeId.current, x, y)
-        );
-        setCurrentLine((prevCurve) => ({
-          points: [...prevCurve.points, x, y],
-          controlPoints: [...prevCurve.controlPoints, { x, y }],
-        }));
-        break;
-    }
+    setLines((lines) =>
+      updateLinePoints(lines, currentShapeId.current, x, y),
+    );
+    setCurrentLine((prevCurve) => ({
+      points: [...prevCurve.points, x, y],
+      controlPoints: [...prevCurve.controlPoints, { x, y }],
+    }));
   };
 
-  // Handles pointer up event to stop drawing
   const onPointerUp = () => {
     isPainting.current = false;
   };
 
-  // Sets the selected shape and highlights it with a transformer
   const setSelectedBorder = (e) => {
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
   };
 
-  // Handles transformations on a line, updating control points accordingly
+  const handleTransform = () => {
+    const line = stageRef.current.findOne(".haligi-line");
+    const lineTransform = line.getAbsoluteTransform().copy().invert();
+
+    const updatedControlPoints = curve.controlPoints.map((point) => {
+      const absolutePoint = { x: point.x, y: point.y };
+      const transformedPoint = lineTransform.point(absolutePoint);
+
+      return {
+        x: transformedPoint.x,
+        y: transformedPoint.y,
+      };
+    });
+
+    setCurve((prevCurve) => ({
+      ...prevCurve,
+      controlPoints: updatedControlPoints,
+    }));
+
+    positionCircles();
+  };
+
+  const positionCircles = () => {
+    const points = lineRef.current.points();
+    const circles = layerRef.current.find(".circle");
+
+    for (let i = 0; i < points.length; i += 2) {
+      const point = { x: points[i], y: points[i + 1] };
+      const newPoint = lineRef.current.getAbsoluteTransform().point(point);
+      circles[i / 2].absolutePosition({
+        x: newPoint.x,
+        y: newPoint.y,
+      });
+    }
+  };
+
+  const handleTransformNew = () => {
+    positionCircles();
+  };
+
+  const handleDragMove = (e) => {
+    handleTransformNew();
+    const { x, y, width, height } = e.target.attrs;
+    setTanlanganShape((prev) => ({
+      ...prev,
+      x,
+      y,
+      width,
+      height,
+    }));
+
+    const layer = layerRef.current;
+    layer.find(".guid-line").forEach((l) => l.destroy());
+
+    // const lineGuideStops = getLineGuideStops(e.target);
+    // const itemBounds = getObjectSnappingEdges(e.target);
+
+    // const guides = getGuides(lineGuideStops, itemBounds);
+
+    // if (!guides.length) return;
+
+    // drawGuides(guides);
+
+    // let absPos = e.target.absolutePosition();
+    // guides.forEach((lg) => {
+    //   if (lg.orientation === 'V') {
+    //     absPos.x = lg.lineGuide + lg.offset;
+    //   } else if (lg.orientation === 'H') {
+    //     absPos.y = lg.lineGuide + lg.offset;
+    //   }
+    // });
+    // e.target.absolutePosition(absPos);
+
+    if (action !== ACTIONS.SELECT) return;
+    const target = e.currentTarget;
+    transformerRef.current.nodes([target]);
+  };
+
   const handleDragMoveCircle = (index) => (e) => {
     // Get the circle's absolute position
     const circleAbsPos = e.target.getAbsolutePosition();
@@ -199,94 +242,60 @@ const DrawLine = () => {
     });
   };
 
-  // Repositions control point circles to match the line's position
-  const positionCircles = () => {
-    const line = lineRef.current;
-    const points = line.points();
-    const circles = layerRef.current.find(".circle");
-
-    for (let i = 0; i < line.points().length; i += 2) {
-      const point = { x: line.points()[i], y: line.points()[i + 1] };
-      const transformedPoint = line.getAbsoluteTransform().point(point);
-
-      circles[i / 2].absolutePosition(transformedPoint);
-    }
-  };
-
-  // Triggers the update of control point positions after a transformation
-  const handleTransformNew = () => {
-    positionCircles();
-  };
-
-  // Handles dragging of shapes, updating the position
-  const handleDragMove = (e) => {
-    handleTransformNew();
-    const { x, y, width, height } = e.target.attrs;
-    setTanlanganShape((prev) => ({
-      ...prev,
-      x,
-      y,
-      width,
-      height,
-    }));
-
-    const layer = layerRef.current;
-    layer.find(".guid-line").forEach((l) => l.destroy());
-
-    // Additional guide logic (commented out) for snapping to grid or guides can be implemented here
-
-    if (action !== ACTIONS.SELECT) return;
-    const target = e.currentTarget;
-    transformerRef.current.nodes([target]);
-  };
   return (
-    <Stage
-      ref={stageRef}
-      width={stageSize.width}
-      height={stageSize.height}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
-    >
-      <Layer ref={layerRef}>
-        <Group
-          draggable
-        // onTransformEnd={() => handleTransform(curve.id)}
-        >
-          <Line
-            ref={lineRef}
-            className="haligi-line"
-            points={curve.points}
-            lineCap="round"
-            name="object"
-            lineJoin="round"
-            tension={0}
-            closed={false}
-            fill={null}
-            stroke={"black"}
-            strokeWidth={4}
-            fillEnabled={false}
-            onDragMove={handleDragMove}
-            onTransform={handleTransformNew}
-            onMouseUp={(e) => setSelectedBorder(e)}
-          />
-          {curve.controlPoints.map((point, i) => (
-            <Circle
-              key={i}
-              x={point.x}
-              y={point.y}
-              radius={9}
-              name="circle"
-              fill="red"
-              draggable
-              onDragMove={handleDragMoveCircle(i)}
+    <>
+      <Stage
+        ref={stageRef}
+        width={stageSize.width}
+        height={stageSize.height}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
+      >
+        <Layer ref={layerRef}>
+          <Group draggable>
+            <Line
+              ref={lineRef}
+              className="haligi-line"
+              points={curve.points}
+              lineCap="round"
+              name="object"
+              lineJoin="round"
+              tension={0}
+              closed={close}
+              fill={null}
+              stroke='black'
+              strokeWidth={4}
+              fillEnabled={false}
+              onDragMove={handleDragMove}
+              onTransform={handleTransformNew}
+              onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, curve.id)}
+              onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, curve.id)}
+              onMouseUp={(e) => setSelectedBorder(e)
+              }
             />
-          ))}
-        </Group>
-        <Transformer ref={transformerRef} />
-      </Layer>
-    </Stage>
+            {curve.controlPoints.map((point, i) => (
+              <Circle
+                key={i}
+                x={point.x}
+                y={point.y}
+                radius={9}
+                name="circle"
+                fill="red"
+                draggable
+                onDragMove={handleDragMoveCircle(i)}
+                onMouseEnter={() => handleMouseEnter(action, setHoveradShapeId, i)}
+                onMouseLeave={() => handleMouseLeave(action, setHoveradShapeId, i)}
+              />
+            ))}
+          </Group>
+
+          <Transformer ref={transformerRef} />
+        </Layer>
+      </Stage>
+    </>
+
   );
 };
 

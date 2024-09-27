@@ -7,6 +7,7 @@ import { Tools } from './components/Tools';
 import { Html } from 'react-konva-utils';
 import TextComponent from './components/Text';
 import img from '/hatch.png'
+import Konva from 'konva';
 import Color from 'color'
 
 const GUIDELINE_OFFSET = 5;
@@ -61,7 +62,47 @@ const App = () => {
   const [openRightSideContent, setOpenRightSideContent] = React.useState(false)
   const [showControlPoints, setShowControlPoints] = React.useState(true)
   const [isFilled, setIsFilled] = React.useState(false)
+  const [gridPatternImage, setGridPatternImage] = React.useState(null);
   const [bgColor, setBgColor] = React.useState('transparent')
+  const [halfArcs, setHalfArcs] = React.useState([]);
+
+  React.useEffect(() => {
+    // Naqshni (katak-katak grid) yaratamiz
+    const patternGroup = new Konva.Group();
+
+    const gridSize = 21; // Katak hajmi
+    const gridCount = 10; // Qancha chiziqlar bo'lishi kerak
+
+    // Vertikal chiziqlar
+    for (let i = 0; i <= gridCount; i++) {
+      const verticalLine = new Konva.Line({
+        points: [i * gridSize, 0, i * gridSize, gridCount * gridSize],
+        stroke: i % 5 === 0 ? '#D3D3D3' : '#E0E0E0', // Har oltinchi chiziq qizil
+        strokeWidth: 1,
+      });
+      patternGroup.add(verticalLine);
+    }
+
+    // Gorizontal chiziqlar
+    for (let i = 0; i <= gridCount; i++) {
+      const horizontalLine = new Konva.Line({
+        points: [0, i * gridSize, gridCount * gridSize, i * gridSize],
+        stroke: i % 5 === 0 ? '#D3D3D3' : '#E0E0E0', // Har oltinchi chiziq qizi
+        strokeWidth: 1,
+      });
+      patternGroup.add(horizontalLine);
+    }
+
+    // Keshlash (cache) va tasvir yaratish
+    patternGroup.cache();
+    patternGroup.toImage({
+      width: gridCount * gridSize,
+      height: gridCount * gridSize,
+      callback: (img) => {
+        setGridPatternImage(img); // Tasvirni statega saqlaymiz
+      },
+    });
+  }, []);
 
   const saveState = () => {
     console.log('saved');
@@ -179,18 +220,6 @@ const App = () => {
     }
   }, []);
 
-  const updateCircles = () => {
-    const transform = lineRef.current.getAbsoluteTransform();
-    const updatedPoints = curve.controlPoints.map((point) => {
-      const transformedPoint = transform.point(point);
-      return { x: transformedPoint.x, y: transformedPoint.y };
-    });
-    setTransformedPoints(updatedPoints);
-  };
-
-  // const handleTransformNew = () => {
-  //   updateCircles();
-  // };
 
   const handleTextClick = (e) => {
     if (isAddingText) {
@@ -282,7 +311,6 @@ const App = () => {
     }
   };
 
-  // Matn tahrirlanayotgan paytda sahifada har qanday bosish matnni saqlash uchun
   React.useEffect(() => {
     const handleClickOutside = (e) => {
       if (inputRef.current && !inputRef.current.contains(e.target)) {
@@ -473,8 +501,6 @@ const App = () => {
   };
 
   const handleDragEnd = (id, cor, e) => {
-    // console.log('drag end');
-
     const layer = layerRef.current;
     layer.find('.guid-line').forEach((l) => l.destroy());
 
@@ -646,7 +672,9 @@ const App = () => {
           },
         ]);
         break
-      case ACTIONS.SPLINE:
+      case ACTIONS.HALFARC:
+        setHalfArcs([...halfArcs, { x, y, startAngle: 0, endAngle: 180, radius: 0 }]);
+        break;
       case ACTIONS.SPLINE:
         setIsDrawing(true);
         setSplines((splines) => [
@@ -723,6 +751,21 @@ const App = () => {
           )
         );
         break;
+      case ACTIONS.HALFARC:
+        if (halfArcs.length === 0) return; // No arc being drawn
+        const currentArc = halfArcs[halfArcs.length - 1]; // Get the last arc being drawn
+        const dxArc = x - currentArc.x;
+        const dyArc = y - currentArc.y;
+        const radiusArc = Math.sqrt(dxArc * dxArc + dyArc * dyArc);
+
+        // Update the radius of the last arc being drawn
+        const updatedHalfArcs = [...halfArcs];
+        updatedHalfArcs[updatedHalfArcs.length - 1] = {
+          ...currentArc,
+          radius: radiusArc, // Use 'radius' instead of 'radius2'
+        };
+        setHalfArcs(updatedHalfArcs);
+        break
       case ACTIONS.SPLINE:
         setIsDrawing(false)
         setSplines((prevSplines) =>
@@ -764,8 +807,6 @@ const App = () => {
     });
   };
 
-
-  // click qilganda select bolganiligini bildirib turuvchi border qoshadi
   const setSelectedBorder = (e) => {
     const target = e.currentTarget;
     transformerRef.current.nodes([target]);
@@ -1028,9 +1069,11 @@ const App = () => {
 
   return (
     <>
-      <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee>
+      {/* <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee> */}
       {/* <button className='absolute top-5 right-5 z-50' onClick={() => setIsAddingText(true)}>Text</button> */}
-
+      <div className='absolute left-[100px] top-[100px]'>
+        {JSON.stringify(lines)}
+      </div>
       <div className="w-full h-screen overflow-hidden">
         {/* Controls */}
         <Tools
@@ -1047,7 +1090,7 @@ const App = () => {
           setIsAddingText={() => setIsAddingText(true)}
         />
         {tanlanganShape && (
-          <div className='p-2 border rounded-xl shadow-xl w-[220px] h-[700px] overflow-scroll z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
+          <div className='p-2 border bg-white rounded-xl shadow-xl w-[220px] h-[700px] overflow-scroll z-10 absolute top-1/2 right-5 transform -translate-y-1/2'>
             <p className='capitalize text-[12px] text-gray-500'>Background</p>
             <div className='flex items-center gap-1 pt-2 pl-2'>
               <button onClick={(e) => handleBgColor(e)} data-color="#e2e8f0" className='w-[25px] h-[25px] bg-[#e2e8f0] rounded-sm'></button>
@@ -1161,7 +1204,6 @@ const App = () => {
             </div>
           </div>
         )}
-
         {/* Canvas */}
         <div className="border">
           <Stage
@@ -1176,8 +1218,18 @@ const App = () => {
             onClick={(e) => handleStageClick(e, isDrawing, curve, setCurve)}
           >
             <Layer ref={layerRef}>
-              <Text zIndex={100} text="undo" x={200} onClick={handleUndo} />
-              <Text zIndex={100} text="redo" x={400} onClick={handleRedo} />
+              {gridPatternImage && (
+                <Rect
+                  x={0}
+                  y={0}
+                  width={stageRef.current ? stageRef.current.width() : 500} // Sahna kengligi
+                  height={stageRef.current ? stageRef.current.height() : 500} // Sahna balandligi            
+                  fillPatternImage={gridPatternImage} // Fon sifatida grid naqshni ishlatish
+                  fillPatternRepeat="repeat" // Tasvirni takrorlash
+                  stroke="red"
+                  strokeWidth={1}
+                />
+              )}
               <Rect
                 x={0}
                 y={0}
@@ -1300,6 +1352,31 @@ const App = () => {
                   }
                 />
               ))}
+              {halfArcs.map((halfArc, index) => (
+                <Arc
+                  key={index}
+                  x={halfArc.x}
+                  y={halfArc.y}
+                  radius={halfArc.radius}
+                  angle={halfArc.angle}
+                  fill="transparent"
+                  stroke="black"
+                  strokeWidth={2}
+                  rotation={0} // Adjust rotation as needed
+                />
+              ))}
+              {halfArcs.length > 0 && (
+                <Arc
+                  x={halfArcs[halfArcs.length - 1].x}
+                  y={halfArcs[halfArcs.length - 1].y}
+                  radius={halfArcs[halfArcs.length - 1].radius}
+                  angle={halfArcs[halfArcs.length - 1].angle}
+                  fill="transparent"
+                  stroke="black"
+                  strokeWidth={2}
+                  rotation={0} // Adjust rotation as needed
+                />
+              )}
               <Group draggable>
                 <Line
                   ref={lineRef}
