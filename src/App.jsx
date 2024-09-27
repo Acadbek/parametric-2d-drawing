@@ -1071,9 +1071,7 @@ const App = () => {
     <>
       {/* <marquee className="text-red-500" behavior="" direction="left">This website is currently under construction.</marquee> */}
       {/* <button className='absolute top-5 right-5 z-50' onClick={() => setIsAddingText(true)}>Text</button> */}
-      <div className='absolute left-[100px] top-[100px]'>
-        {JSON.stringify(lines)}
-      </div>
+     
       <div className="w-full h-screen overflow-hidden">
         {/* Controls */}
         <Tools
